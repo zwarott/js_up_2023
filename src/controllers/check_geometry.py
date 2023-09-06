@@ -1,4 +1,5 @@
 import os
+import zipfile
 from time import time
 
 import geopandas as gpd
@@ -156,8 +157,231 @@ def check_validity_shp(shp_path: str) -> None:
     print(f"Checking time: {duration:.2f} s.")
 
 
-def check_validity_shp_all() -> None:
-    pass
+def check_validity_shp_dir(dir_path: str, export_invalid: bool = False) -> None:
+    # Start time of checking process.
+    start_time = time()
+    # Create set of shapefiles (only *.shp needed).
+    shps_to_check = set(
+        shp[:-4] for shp in os.listdir(dir_path) if ".shp" in shp and "xml" not in shp
+    )
+    single_sep = "-" * 70
+    for shp in shps_to_check:
+        shp_to_check = shp_to_wkt(f"{dir_path}/{shp}.shp")
+        # List of invalid geometries.
+        invalid_geom = []
+        # Number of invalid geometries.
+        invalid_count = 0
+        # Print overview of invalid geometries (cause and coordinates).
+        invalidity = []
+        # Print overview of invalid geometries (cause and coordinates).
+        print(f"Checking Validity Details: shapefile '{shp}.shp'")
+        # Check geometry for each record (row).
+        for geometry in shp_to_check:
+            # If geometry is not valid, print cause with coordinates,
+            # put it into list with invalid geometries and add it into
+            # counting.
+            if not explain_validity(geometry) == "Valid Geometry":
+                inv_reason = explain_validity(geometry)
+                print(inv_reason)
+                invalidity.append(inv_reason)
+                invalid_geom.append(to_wkt(geometry))
+                invalid_count += 1
+
+            # If geometry is valid, pass.
+            else:
+                pass
+
+        # If all geometries are valid, print statement about it.
+        if invalid_count == 0:
+            print(
+                f"All geometries in shapefile {shp} are valid.",
+                single_sep,
+                sep="\n",
+            )
+        # If there are some invalid geometries and these geometries need to be
+        # exported, they will be saved as shapefiles. Also print number ot them
+        # and destination of exported shapefiles.
+        elif invalid_count > 0 and export_invalid is True:
+            # Convert infromation about geometry from WKT into GeoSeries.
+            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="epsg:5514")
+            # Set up a new column with values stored in list above.
+            inv_col = {"invalidity": invalidity}
+            # Create GeoDataFrame from 'geom_col' as geometry and 'inv_col' as a
+            # invalidity reason containg reason and coordinates.
+            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="epsg:5514")
+            # Path of destination directory (where will be invalid data saved).
+            dest_dir_path = "./src/models/data/zc3_up_hrabisin/output/"
+            # Save these invalid data as shapefiles.
+            gdf.to_file(f"{dest_dir_path}{shp}_invalid.shp")
+            # Stored path of each invalid shapefile.
+            abs_path = os.path.abspath(f"{dest_dir_path}/{shp}_invalid.shp")
+            # Export point layer that include error locations.
+            # Step 1 -> String containing characters to remove.
+            to_remove_1 = (
+                "RingSelf-intersectionSelf-intersectionToofewpointsingeometrycomponent "
+            )
+            # Step 2 -> Remove characters stored in 'to_remove' variable (error causes).
+            stripped_1 = [w.strip(to_remove_1) for w in invalidity]
+            # Step 3 -> String containing square brackets to remove.
+            to_remove_2 = "[]"
+            # Step 4 -> Remove square brackets and create list of strings including
+            # coordinates of each error.
+            stripped_2 = [w.strip(to_remove_2) for w in stripped_1]
+            # Step 5 -> replace space separator by comma separator.
+            sep_replaced = [b.replace(" ", ", ") for b in stripped_2]
+            # Step 6 -> Convert list of string into list of tuples including
+            # float coordinates prepared for exporting as points coordinates.
+            coords_tuple = [tuple(map(float, i.split(","))) for i in sep_replaced]
+            # Step 7 -> Create point geometry in WKT format.
+            geom = [Point(v) for v in coords_tuple]
+            # Step 8 -> Create GeoDataFrame including geometry column and column with
+            # error causes.
+            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="epsg:5514")
+            # Step 9 -> Export GeoDataFrame as shapefile.
+            points_gdf.to_file(f"{dest_dir_path}{shp}_invalid_location.shp")
+            # Save absolute path of exported shapefile.
+            abs_path_2 = os.path.abspath(
+                (f"{dest_dir_path}/{shp}_invalid_location.shp")
+            )
+            # Print infaromation about: which table contains invalid geometries,
+            # number of invalid geometries and where these shapefiles were
+            # saved (geometries with error and error locations).
+            print(
+                f"Number of invalid geometries: {invalid_count}.",
+                f"Invalid geometries from shapefile '{shp}.shp' were saved to {abs_path}.",
+                f"Invalid geometry locations from shapefile '{shp}.shp' were saved to {abs_path_2}.",
+                single_sep,
+                sep="\n",
+            )
+        # If I do not need export invalied geometries, only print their number.
+        else:
+            print(
+                f"Number of invalid geometries: {invalid_count}.",
+                single_sep,
+                sep="\n",
+            )
+    # In the end, print checking time.
+    duration = time() - start_time
+    print(f"Checking time: {duration:.2f} s.")
+
+
+def check_validity_shp_zip(
+    zip_dir: str, mun_code: int, export_invalid: bool = False
+) -> None:
+    # Star time of checking process.
+    start_time = time()
+    # Create dictionary with zip contents.
+    zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
+    # Create set with shapefile names only.
+    shps_to_check = set(
+        shp.removeprefix("DUP_123456/Data/").removesuffix(".shp")
+        for shp in zip_contents
+        if ".shp" in shp and "xml" not in shp
+    )
+    single_sep = "-" * 70
+    for shp in shps_to_check:
+        # GeoSeries from shp.
+        gdf_from_shp = gpd.read_file(
+            f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
+        )
+        # Convert shp attribute (geometry) into wkt.
+        shp_to_check = from_wkt(gdf_from_shp.geometry.to_wkt())
+        # List of invalid geometries.
+        invalid_geom = []
+        # Number of invalid geometries.
+        invalid_count = 0
+        # Print overview of invalid geometries (cause and coordinates).
+        invalidity = []
+        # Print overview of invalid geometries (cause and coordinates).
+        print(f"Checking Validity Details: shapefile '{shp}.shp'")
+        # Check geometry for each record (row).
+        for geometry in shp_to_check:
+            # If geometry is not valid, print cause with coordinates,
+            # put it into list with invalid geometries and add it into
+            # counting.
+            if not explain_validity(geometry) == "Valid Geometry":
+                inv_reason = explain_validity(geometry)
+                print(inv_reason)
+                invalidity.append(inv_reason)
+                invalid_geom.append(to_wkt(geometry))
+                invalid_count += 1
+
+            # If geometry is valid, pass.
+            else:
+                pass
+
+        # If all geometries are valid, print statement about it.
+        if invalid_count == 0:
+            print(
+                f"All geometries in shapefile {shp} are valid.",
+                single_sep,
+                sep="\n",
+            )
+        # If there are some invalid geometries and these geometries need to be
+        # exported, they will be saved as shapefiles. Also print number ot them
+        # and destination of exported shapefiles.
+        elif invalid_count > 0 and export_invalid is True:
+            # Convert infromation about geometry from WKT into GeoSeries.
+            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="epsg:5514")
+            # Set up a new column with values stored in list above.
+            inv_col = {"invalidity": invalidity}
+            # Create GeoDataFrame from 'geom_col' as geometry and 'inv_col' as a
+            # invalidity reason containg reason and coordinates.
+            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="epsg:5514")
+            # Path of destination directory (where will be invalid data saved).
+            dest_dir_path = "./src/models/data/zc3_up_hrabisin/output/"
+            # Save these invalid data as shapefiles.
+            gdf.to_file(f"{dest_dir_path}{shp}_invalid.shp")
+            # Stored path of each invalid shapefile.
+            abs_path = os.path.abspath(f"{dest_dir_path}/{shp}_invalid.shp")
+            # Export point layer that include error locations.
+            # Step 1 -> String containing characters to remove.
+            to_remove_1 = (
+                "RingSelf-intersectionSelf-intersectionToofewpointsingeometrycomponent "
+            )
+            # Step 2 -> Remove characters stored in 'to_remove' variable (error causes).
+            stripped_1 = [w.strip(to_remove_1) for w in invalidity]
+            # Step 3 -> String containing square brackets to remove.
+            to_remove_2 = "[]"
+            # Step 4 -> Remove square brackets and create list of strings including
+            # coordinates of each error.
+            stripped_2 = [w.strip(to_remove_2) for w in stripped_1]
+            # Step 5 -> replace space separator by comma separator.
+            sep_replaced = [b.replace(" ", ", ") for b in stripped_2]
+            # Step 6 -> Convert list of string into list of tuples including
+            # float coordinates prepared for exporting as points coordinates.
+            coords_tuple = [tuple(map(float, i.split(","))) for i in sep_replaced]
+            # Step 7 -> Create point geometry in WKT format.
+            geom = [Point(v) for v in coords_tuple]
+            # Step 8 -> Create GeoDataFrame including geometry column and column with
+            # error causes.
+            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="epsg:5514")
+            # Step 9 -> Export GeoDataFrame as shapefile.
+            points_gdf.to_file(f"{dest_dir_path}{shp}_invalid_location.shp")
+            # Save absolute path of exported shapefile.
+            abs_path_2 = os.path.abspath(
+                (f"{dest_dir_path}/{shp}_invalid_location.shp")
+            )
+            # Print infaromation about: which table contains invalid geometries,
+            # number of invalid geometries and where these shapefiles were
+            # saved (geometries with error and error locations).
+            print(
+                f"Number of invalid geometries: {invalid_count}.",
+                f"Invalid geometries from shapefile '{shp}.shp' were saved to {abs_path}.",
+                f"Invalid geometry locations from shapefile '{shp}.shp' were saved to {abs_path_2}.",
+                single_sep,
+                sep="\n",
+            )
+        # If I do not need export invalied geometries, only print their number.
+        else:
+            print(
+                f"Number of invalid geometries: {invalid_count}.",
+                single_sep,
+                sep="\n",
+            )
+    # In the end, print checking time.
+    duration = time() - start_time
+    print(f"Checking time: {duration:.2f} s.")
 
 
 def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -> None:
@@ -231,7 +455,7 @@ def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -
             # Path of destination directory (where will be invalid data saved).
             dest_dir_path = "./src/models/data/zc3_up_hrabisin/output/"
             # Save these invalid data as shapefiles.
-            gdf.to_file(f"{dest_dir_path}{table}_invalid.shp")
+            gdf.to_file(f"{dest_dir_path}{table}_invalid.shp", driver="ESRI Shapefile")
             # Stored path of each invalid shapefile.
             abs_path = os.path.abspath(f"{dest_dir_path}/{table}_invalid.shp")
             # Export point layer that include error locations.
@@ -257,7 +481,9 @@ def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -
             # error causes.
             points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="epsg:5514")
             # Step 9 -> Export GeoDataFrame as shapefile.
-            points_gdf.to_file(f"{dest_dir_path}{table}_invalid_location.shp")
+            points_gdf.to_file(
+                f"{dest_dir_path}{table}_invalid_location.shp",
+            )
             # Save absolute path of exported shapefile.
             abs_path_2 = os.path.abspath(
                 (f"{dest_dir_path}/{table}_invalid_location.shp")
@@ -268,7 +494,7 @@ def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -
             print(
                 f"Number of invalid geometries: {invalid_count}.",
                 f"Invalid geometries from table '{table} were saved to {abs_path}.",
-                f"Invalid geometry locataions from table '{table}' were saved to {abs_path_2}.",
+                f"Invalid geometry locations from table '{table}' were saved to {abs_path_2}.",
                 single_sep,
                 sep="\n",
             )
