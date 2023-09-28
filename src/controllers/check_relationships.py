@@ -252,6 +252,8 @@ def shp_within_mun(
                     # Export this GeoDataFrame as shapefile.
                     gdf_outside.to_file(
                         f"{dest_dir_path}/{shp.lower()}_outside.shp",
+                        driver="ESRI Shapefile",
+                        crs="EPSG:5514",
                     )
                     # Print number of geometries that are not within ReseneUzemi_p.
                     print(
@@ -383,6 +385,8 @@ def covered_mun(
             if diff is not None and export_diff is True:
                 exploded.to_file(
                     f"{dest_dir_path}/not_cover_reseneuzemi_p.shp",
+                    driver="ESRI Shapefile",
+                    crs="5514",
                 )
 
                 print(
@@ -434,6 +438,8 @@ def covered_mun(
             if diff is not None and export_diff is True:
                 exploded.to_file(
                     f"{dest_dir_path}/not_cover_reseneuzemi_p.shp",
+                    driver="ESRI Shapefile",
+                    crs="EPSG:5514",
                 )
 
                 print(
@@ -546,12 +552,13 @@ def check_gaps(
                         geometry=interior_geom, crs="epsg:5514"
                     )
                     interior_gdf.to_file(
-                        f"{dest_dir_path}/{shp}_gaps.shp",
+                        f"{dest_dir_path}/{shp.lower()}_gaps.shp",
                         driver="ESRI Shapefile",
+                        crs="EPSG:5514",
                     )
                     print(
                         f"Error: There are {len(interior)} gaps in '{shp}.shp'.",
-                        f"       - These gaps were saved as '{shp}_gaps.shp'.",
+                        f"       - These gaps were saved as '{shp.lower()}_gaps.shp'.",
                         sep="\n",
                     )
                 # If export_gaps = False, print only number of inner rings.
@@ -595,7 +602,7 @@ def check_gaps_covered(
     mun_code : int
        A unique code of particular municipality, for which
        are these spatial data tested.
-    export_gaps : bool
+    export_gapexport_overlapsl
        A boolean value for exporting gaps of certain ESRI Shapefile.
        Default value is set up as False (for not exporting
        these gaps). For exporting these gaps, put True.
@@ -658,6 +665,7 @@ def check_gaps_covered(
             interior_gdf.to_file(
                 f"{dest_dir_path}/plochy_rzv_kordiory_p_gaps.shp",
                 driver="ESRI Shapefile",
+                crs="ESPG:5514",
             )
             print(
                 f"Error: There are {len(interior)} gaps betweeen 'PlochyRZV_p.shp' and 'KoridoryP_p.shp'.",
@@ -677,7 +685,7 @@ def check_gaps_covered(
     ):
         print(
             "Error: Gaps between 'PlochyRZV_p.shp' and 'KoridoryP_p.shp' cannot be check due to:",
-            "       - 'KoridoryP_p.shp' is misssing.",
+            "       - 'KoridoryP_p.shp' is missing.",
             "Gaps in 'PlochyRZV_p.shp' has been already checked within other step.",
             sep="\n",
         )
@@ -789,6 +797,7 @@ def check_overlaps(
                 inters_geom = gpd.GeoSeries(intersected)
                 # Convert GeometryCollections and Multipolygons into Polygons,
                 # Polylines and Points.
+                # If index_parts = True, column with index parts will be created.
                 geom_exploded = inters_geom.explode(index_parts=True)
                 # Filter Polygons only.
                 polyg_only = [x for x in geom_exploded if x.geom_type == "Polygon"]
@@ -802,12 +811,13 @@ def check_overlaps(
                         geometry=polyg_only, crs="epsg:5514"
                     )
                     gdf_overlaps.to_file(
-                        f"{dest_dir_path}/{shp}_overlaps.shp",
+                        f"{dest_dir_path}/{shp.lower()}_overlaps.shp",
                         driver="ESRI Shapefile",
+                        crs="EPSG:5514",
                     )
                     print(
                         f"Error: There are {len(polyg_only)} overlaps in '{shp}.shp'.",
-                        f"       - Overlaping parts were exported into as '{shp}_overlaps.shp'.",
+                        f"       - Overlaping parts were exported into as '{shp.lower()}_overlaps.shp'.",
                         sep="\n",
                     )
                 # If export_overlaps = export number of oerlaps only.
@@ -837,29 +847,48 @@ def check_overlaps(
 
 
 def overlaps_covered_mun(
-    zip_dir: str, dest_dir_path: str, mun_code: int, export_inter: bool = False
+    zip_dir: str, dest_dir_path: str, mun_code: int, export_overlaps: bool = False
 ) -> None:
+    """Check overlaps between PlochyRZV_p.shp and KoridoryP_p.shp.
+
+    Check, if there are any overlaps between PlochyRZV_p.shp and
+    KoridoryP_p.shp. If KoridoryP_p.shp is missing, overlaps will
+    be not checked, because overlaps in KoridoryP_p.shp will be
+    already checked.
+
+    Parameters
+    ----------
+    zip_dir : str
+        A path to directory, where are zipped files stored.
+    dest_dir_path : str
+        A path to directory, where will be overlaps saved.
+    mun_code : int
+       A unique code of particular municipality, for which
+       are these spatial data tested.
+    export_overlaps : bool
+       A boolean value for exporting overlaping geometries of certain
+       ESRI Shapefile. Default value is set up as False (for not exporting
+       these overlaping geometries). For exporting these overlaps, put True.
+
+    """
     # Start time of checking process.
     start_time = time()
     # Create list of zip contents.
     zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
-
     # Checking process announcement title.
     separator = "-" * 150
     spaces = " " * 150
-    checking_process = (
-        "*** Check gaps between 'PlochyRZV_p.shp' and 'KoridoryP_p.shp' shapefiles ***"
-    )
+    checking_process = "*** Checking gaps between 'PlochyRZV_p.shp' and 'KoridoryP_p.shp' shapefiles ***"
     print(spaces, checking_process, spaces, sep="\n")
     # Path to PlochyRZV_p shapefile.
     plochy_rzv_path = (
         f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/PlochyRZV_p.shp"
     )
-    # Path to koridory_p_path shapefile.
+    # Path to KoridoryP_p shapefile.
     koridory_p_path = (
         f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/KoridoryP_p.shp"
     )
-    # If bowh shapefiles above is included and are not empty.
+    # If both shapefiles above are included and are not empty.
     if (
         f"DUP_{mun_code}/Data/PlochyRZV_p.shp" in zip_contents
         and gpd.read_file(plochy_rzv_path).empty is False
@@ -882,19 +911,22 @@ def overlaps_covered_mun(
         gdf_inter = gpd.GeoDataFrame(geometry=inter_geom, crs="epsg:5514")
         # Explode multiparts geometries into single geometries (list to
         # rows).
+        # If index_parts = False, index_parts will be not exported as a
+        # new column.
         exploded = gdf_inter.explode(index_parts=False)
         polyg_only = [x for x in exploded if x.geom_type == "Polygon"]
-        # If there are not any overlaps.
+        # If there are not any .
         if len(polyg_only) == 0:
             print(
                 "Ok: There are no overlaps between 'PlochyRZV_p' and 'KoridoryP_p'.",
             )
         # If there are some intersections and export_inter = True, export them
         # as shapefile and print statements about intersections.
-        if len(polyg_only) > 0 and export_inter is True:
+        if len(polyg_only) > 0 and export_overlaps is True:
             exploded.to_file(
                 f"{dest_dir_path}/plochy_rzv_koridory_p_overlaps.shp",
                 driver="ESRI Shapefile",
+                crs="ESPG:5514",
             )
             print(
                 "Error: There are overlaps between 'PlochyRZV_p.shp' and 'KoridoryP_p.shp'.",
@@ -944,6 +976,372 @@ def overlaps_covered_mun(
         elif gpd.read_file(plochy_rzv_path).empty is True:
             print("       - 'PlochyRZV_p.shp' is empty.")
 
+    # Print checking and exporting process time.
+    duration = time() - start_time
+    print(separator, f"Checking time: {duration:.4f} s.", separator, sep="\n")
+
+
+def vu_within_uses(
+    zip_dir: str, dest_dir_path: str, mun_code: int, export_outside: bool = False
+) -> None:
+    """Check 'VU' features from VpsVpoAs_p.shp within USES_p.shp.
+
+    Check, if 'VU' features from VpsVpoAs_p.shp are within
+    USES_p.shp. If 'VU' feaures is missing or is empty, checking
+    process is skipped.
+
+    Parameters
+    ----------
+    zip_dir : str
+        A path to directory, where are zipped files stored.
+    dest_dir_path : str
+        A path to directory, where will be overlaps saved.
+    mun_code : int
+       A unique code of particular municipality, for which
+       are these spatial data tested.
+    export_overlaps : bool
+       A boolean value for exporting geometries of certain
+       ESRI Shapefile that are not withis USES_p.shp. Default
+       value is set up as False (for not exporting these
+       geometries outside USES_p.shp). For exporting these
+       geometries, put True.
+    """
+    # Start time of checking process.
+    start_time = time()
+    # Create list of zip contents.
+    zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
+    # Checking process announcement title.
+    separator = "-" * 150
+    spaces = " " * 150
+    checking_process = (
+        "*** Checking 'VpsVpoAs_p.shp' (VU) geometries within 'USES_p.shp' ***"
+    )
+    print(spaces, checking_process, spaces, sep="\n")
+    # Path to USES_p shapefile.
+    uses_p_path = f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/USES_p.shp"
+    # Path to VpsVpoAs_p shapefile.
+    vpsvpoas_p_path = (
+        f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/VpsVpoAs_p.shp"
+    )
+    # Create GeoDataFrames from paths above.
+    uses_gdf = gpd.read_file(uses_p_path)
+    vpsvpoas_gdf = gpd.read_file(vpsvpoas_p_path)
+    # Filter rows with "VU" values.
+    vpsvpoas_vu = vpsvpoas_gdf[vpsvpoas_gdf["id"].str.startswith("VU")]
+    # Reset index to filtered rows (starts from 0).
+    vpsvpoas_vu = vpsvpoas_vu.reset_index(drop=True)
+
+    # If both shapefiles are included and GeoDataFrames are not empty.
+    if (
+        f"DUP_{mun_code}/Data/USES_p.shp" in zip_contents
+        and uses_gdf.empty is False
+        and f"DUP_{mun_code}/Data/VpsVpoAs_p.shp" in zip_contents
+        and vpsvpoas_vu.empty is False
+    ):
+        # List for geometry rows.
+        geom_out = []
+        # Number of geometries.
+        geom_out_count = 0
+        # For each row (index number) in all geometries (count) find out,
+        # which are not within USES_p.
+        for i in range(vpsvpoas_vu.geometry.count()):
+            # If geometry is not within USES_p.
+            if vpsvpoas_vu.geometry[i].within(uses_gdf.geometry) is False:
+                # Append geometry parts that lay outside USES_p into geom_out list.
+                geom_out.append(vpsvpoas_vu.geometry[i].difference(uses_gdf.geometry))
+                # Count this geometry.
+                geom_out_count += 1
+            # If this geometry is within USES_p, pass.
+            else:
+                pass
+        # If all Vu features are within USES_p.
+        if geom_out_count == 0:
+            print(
+                "Ok: All features (VU) from 'VpsVpoAs_p.shp' are within 'USES_p.shp'.",
+            )
+        # If there are some geometries outside, do:
+        elif geom_out_count > 0 and export_outside is True:
+            # Converts these geometries into Geoseries.
+            geom_out_col = gpd.GeoSeries(data=geom_out, crs="epsg:5514")
+            # Then create GeoDataFrame (from info list and Geoseries).
+            gdf_outside = gpd.GeoDataFrame(geometry=geom_out_col, crs="epsg:5514")
+            # Export this GeoDataFrame as shapefile.
+            gdf_outside.to_file(
+                f"{dest_dir_path}/vpsvpoas_p_vu_outside.shp",
+                driver="ESRI Shapefile",
+                crs="EPSG:5514",
+            )
+            # Print number of geometries that are not within ReseneUzemi_p.
+            print(
+                f"Error: There are {geom_out_count} VU feature(s) from 'VpsVpoAs_p.shp' outside 'ReseneUzemi_p.shp'.",
+                "       - These parts were saved as 'vpsvpoas_p_vu_outside.shp'.",
+                sep="\n",
+            )
+        # If export_outside = False, print number of features outside only.
+        else:
+            print(
+                f"Error: There are {geom_out_count} VU feature(s) from 'VpsVpoAs_p.shp' outside 'ReseneUzemi_p.shp'.",
+            )
+    else:
+        print(
+            "Warning: Checking VU features from 'VpsVpoAs_p.shp' within 'USES_p.shp' cannot be done due to:"
+        )
+        if f"DUP_{mun_code}/Data/USES_p.shp" not in zip_contents:
+            print("'USES_p.shp' is missing")
+        elif f"DUP_{mun_code}/Data/VpsVpoAs_p.shp" not in zip_contents:
+            print("'VpsVpoAs_p.shp' is missing")
+        elif uses_gdf.empty is True:
+            print("'USES_p.shp' is empty.")
+        elif vpsvpoas_vu.empty is True:
+            print("'VU' features are not included.")
+        else:
+            print("'VpsVpoAs_p.shp' is empty.")
+    # Print checking and exporting process time.
+    duration = time() - start_time
+    print(separator, f"Checking time: {duration:.4f} s.", separator, sep="\n")
+
+
+def p_within_zu(
+    zip_dir: str, dest_dir_path: str, mun_code: int, export_outside: bool = False
+) -> None:
+    """Check 'P' features from PlochyRZV_p.shp within ZastaveneUzemi_p.shp.
+
+    Check, if 'P' features from VpsVpoAs_p.shp are within
+    ZastaveneUzemi_p.shp. If 'P' feaures is missing or is empty, checking
+    process is skipped.
+
+    Parameters
+    ----------
+    zip_dir : str
+        A path to directory, where are zipped files stored.
+    dest_dir_path : str
+        A path to directory, where will be overlaps saved.
+    mun_code : int
+       A unique code of particular municipality, for which
+       are these spatial data tested.
+    export_overlaps : bool
+       A boolean value for exporting geometries of certain
+       ESRI Shapefile that are not within ZastaveneUzemi_p.shp.
+       Default value is set up as False (for not exporting these
+       geometries outside ZastaveneUzemi_p.shp). For exporting these
+       geometries, put True.
+    """
+
+    # Start time of checking process.
+    start_time = time()
+    # Create list of zip contents.
+    zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
+    # Checking process announcement title.
+    separator = "-" * 150
+    spaces = " " * 150
+    checking_process = (
+        "*** Checking 'PlochyZmen_p.shp' (P) features within 'ZastaveneUzemi_p.shp' ***"
+    )
+    print(spaces, checking_process, spaces, sep="\n")
+    # Path to ZastaveneUzemi_p shapefile.
+    zu_p_path = (
+        f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/ZastaveneUzemi_p.shp"
+    )
+    # Path to PlochyZmen_p shapefile.
+    pz_p_path = (
+        f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/PlochyZmen_p.shp"
+    )
+    # Create GeoDataFrames from paths above.
+    zu_gdf = gpd.read_file(zu_p_path)
+    pz_gdf = gpd.read_file(pz_p_path)
+    # Filter 'P' features from pz_gdf.
+    pz_p = pz_gdf[pz_gdf["id"].str.startswith("P")]
+    # Reset index from filtered rows (starts from 0).
+    pz_p = pz_p.reset_index(drop=True)
+
+    # If both shapefiles above are included and GeoDataFrames are not empty.
+    if (
+        f"DUP_{mun_code}/Data/ZastaveneUzemi_p.shp" in zip_contents
+        and zu_gdf.empty is False
+        and f"DUP_{mun_code}/Data/PlochyZmen_p.shp" in zip_contents
+        and pz_p.empty is False
+    ):
+        # List for geometry rows.
+        geom_out = []
+        # Number of geometries.
+        geom_out_count = 0
+        # For each row (index number) in all geometries (count) find out,
+        # which are not within ZastaveneUzemi_p.
+        for i in range(pz_p.geometry.count()):
+            # If geometry is not within ZastaveneUzemi_p.
+            if pz_p.geometry[i].within(zu_gdf.geometry) is False:
+                # Append geometry parts that lay outside ZastaveneUzemi_p into geom_out list.
+                geom_out.append(pz_p.geometry[i].difference(zu_gdf.geometry))
+                # Count this geometry.
+                geom_out_count += 1
+            # If this geometry is within ZastaveneUzemi_p, pass.
+            else:
+                pass
+        # If all 'P' features are within ZastaveneUzemi_p.
+        if geom_out_count == 0:
+            print(
+                "Ok: All 'P' features from 'PlochyZmen_p.shp' are within 'ZastaveneUzemi_p.shp'.",
+            )
+        # If there are some geometries outside, do:
+        elif geom_out_count > 0 and export_outside is True:
+            # Converts these geometries into Geoseries.
+            geom_out_col = gpd.GeoSeries(data=geom_out, crs="epsg:5514")
+            # Then create GeoDataFrame (from info list and Geoseries).
+            gdf_outside = gpd.GeoDataFrame(geometry=geom_out_col, crs="epsg:5514")
+            # Export this GeoDataFrame as shapefile.
+            gdf_outside.to_file(
+                f"{dest_dir_path}/plochyzmen_p_p_outside.shp",
+                driver="ESRI Shapefile",
+                crs="EPSG:5514",
+            )
+            # Print number of geometries that are not within ZastaveneUzemi_p.
+            print(
+                f"Error: There are {geom_out_count} 'P' feature(s) from 'PlochyZmen_p.shp' outside 'ZastaveneUzemi_p.shp'.",
+                "       - These parts were saved as 'plochyzmen_p_p_outside.shp'.",
+                sep="\n",
+            )
+        # If export_outside = False, print number of features outside only.
+        else:
+            print(
+                f"Error: There are {geom_out_count} 'P' feature(s) from 'PlochyZmen_p.shp' outside 'ZastaveneUzemi_p.shp'.",
+            )
+    else:
+        print(
+            "Warning: Checking 'P' features from 'PlochyZmen_p.shp' within 'ZastaveneUzemi_p.shp' cannot be done due to:"
+        )
+        if f"DUP_{mun_code}/Data/ZastaveneUzemi_p.shp" not in zip_contents:
+            print("'ZastaveneUzemi_p.shp' is missing")
+        elif f"DUP_{mun_code}/Data/PlochyZmen_p.shp" not in zip_contents:
+            print("'PlochyZmen_p.shp' is missing")
+        elif zu_gdf.empty is True:
+            print("'ZastaveneUzemi_p.shp' is empty.")
+        elif pz_p.empty is True:
+            print("'P' features are not included.")
+        else:
+            print("'PlochyZmen_p.shp' is empty.")
+    # Print checking and exporting process time.
+    duration = time() - start_time
+    print(separator, f"Checking time: {duration:.4f} s.", separator, sep="\n")
+
+
+def k_outside_zu(
+    zip_dir: str, dest_dir_path: str, mun_code: int, export_inside: bool = False
+) -> None:
+    """Check 'K' features from PlochyRZV_p.shp outside ZastaveneUzemi_p.shp.
+
+    Check, if 'K' features from VpsVpoAs_p.shp are outside
+    ZastaveneUzemi_p.shp. If 'K' feaures is missing or is empty,
+    checking process is skipped.
+
+    Parameters
+    ----------
+    zip_dir : str
+        A path to directory, where are zipped files stored.
+    dest_dir_path : str
+        A path to directory, where will be overlaps saved.
+    mun_code : int
+       A unique code of particular municipality, for which
+       are these spatial data tested.
+    export_overlaps : bool
+       A boolean value for exporting geometries of certain
+       ESRI Shapefile that are  within ZastaveneUzemi_p.shp.
+       Default value is set up as False (for not exporting these
+       geometries within ZastaveneUzemi_p.shp). For exporting these
+       geometries, put True.
+    """
+
+    # Start time of checking process.
+    start_time = time()
+    # Create list of zip contents.
+    zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
+    # Checking process announcement title.
+    separator = "-" * 150
+    spaces = " " * 150
+    checking_process = (
+        "*** Checking 'PlochyZmen_p.shp' (K) features inside 'ZastaveneUzemi_p.shp' ***"
+    )
+    print(spaces, checking_process, spaces, sep="\n")
+    # Path to ZastaveneUzemi_p shapefile.
+    zu_p_path = (
+        f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/ZastaveneUzemi_p.shp"
+    )
+    # Path to PlochyZmen_p shapefile.
+    pz_k_path = (
+        f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/PlochyZmen_p.shp"
+    )
+    # Create GeoDataFrames from paths above.
+    zu_gdf = gpd.read_file(zu_p_path)
+    pz_gdf = gpd.read_file(pz_k_path)
+    # Filter rows with 'K' features.
+    pz_k = pz_gdf[pz_gdf["id"].str.startswith("K")]
+    # Reset index for filtered rows (starts from 0).
+    pz_k = pz_k.reset_index(drop=True)
+
+    # If bowh shapefiles above are included and GeoDataFrames are not empty.
+    if (
+        f"DUP_{mun_code}/Data/ZastaveneUzemi_p.shp" in zip_contents
+        and zu_gdf.empty is False
+        and f"DUP_{mun_code}/Data/PlochyZmen_p.shp" in zip_contents
+        and pz_k.empty is False
+    ):
+        # List for geometry rows.
+        geom_in = []
+        # Number of geometries.
+        geom_in_count = 0
+        # For each row (index number) in all geometries (count) find out,
+        # which are within ZastaveneUzemi_p.
+        for i in range(pz_k.geometry.count()):
+            # If geometry is  within ZastaveneUzemi_p.
+            if pz_k.geometry[i].within(zu_gdf.geometry) is True:
+                # Append geometry parts that lay within ZastaveneUzemi_p into geom_in list.
+                geom_in.append(pz_k.geometry[i].difference(zu_gdf.geometry))
+                # Count this geometry.
+                geom_in_count += 1
+            # If this geometry is outside the ZastaveneUzemi_p, pass.
+            else:
+                pass
+        # If all 'K' features are outside the ZastaveneUzemi_p.
+        if geom_in_count == 0:
+            print(
+                "Ok: All 'K' features from 'PlochyZmen_p.shp' are inside 'ZastaveneUzemi_p.shp'.",
+            )
+        # If there are some geometries inside, do:
+        elif geom_in_count > 0 and export_inside is True:
+            # Converts these geometries into Geoseries.
+            geom_in_col = gpd.GeoSeries(data=geom_in, crs="epsg:5514")
+            # Then create GeoDataFrame (from info list and Geoseries).
+            gdf_inside = gpd.GeoDataFrame(geometry=geom_in_col, crs="epsg:5514")
+            # Export this GeoDataFrame as shapefile.
+            gdf_inside.to_file(
+                f"{dest_dir_path}/plochyzmen_k_p_inside.shp",
+                driver="ESRI Shapefile",
+                crs="EPSG:5514",
+            )
+            # Print number of geometries that are within ZastaveneUzemi_p.
+            print(
+                f"Error: There are {geom_in_count} 'K' feature(s) from 'PlochyZmen_p.shp' inside 'ZastaveneUzemi_p.shp'.",
+                "       - These parts were saved as 'plochyzmen_k_p_inside.shp'.",
+                sep="\n",
+            )
+        # If export_inside = False, print number of features inside only.
+        else:
+            print(
+                f"Error: There are {geom_in_count} 'K' feature(s) from 'PlochyZmen_p.shp' inside 'ZastaveneUzemi_p.shp'.",
+            )
+    else:
+        print(
+            "Warning: Checking 'K' features from 'PlochyZmen_p.shp' inside 'ZastaveneUzemi_p.shp' cannot be done due to:"
+        )
+        if f"DUP_{mun_code}/Data/ZastaveneUzemi_p.shp" not in zip_contents:
+            print("'ZastaveneUzemi_p.shp' is missing")
+        elif f"DUP_{mun_code}/Data/PlochyZmen_p.shp" not in zip_contents:
+            print("'PlochyZmen_p.shp' is missing")
+        elif zu_gdf.empty is True:
+            print("'ZastaveneUzemi_p.shp' is empty.")
+        elif pz_k.empty is True:
+            print("'K' features are not included.")
+        else:
+            print("'PlochyZmen_p.shp' is empty.")
     # Print checking and exporting process time.
     duration = time() - start_time
     print(separator, f"Checking time: {duration:.4f} s.", separator, sep="\n")
