@@ -26,7 +26,7 @@ def shp_info(zip_dir: str, mun_code) -> None:
     shps_to_check = set(
         shp.removeprefix(f"DUP_{mun_code}/Data/").removesuffix(".shp")
         for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp
+        if shp.endswith(".shp")
     )
     # Crate list of missing shapefiles.
     missing_shp = [shp for shp in js_tables if shp not in shps_to_check]
@@ -81,7 +81,7 @@ def mandatory_shp_miss(zip_dir: str, mun_code: int):
     shps_to_check = set(
         shp.removeprefix(f"DUP_{mun_code}/Data/").removesuffix(".shp")
         for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp
+        if shp.endswith(".shp")
     )
     # If any layers are missing, put them into the list.
     # Names of mandatory shapefiles are stored in mandatory_tables from
@@ -136,11 +136,11 @@ def unknown_shp(zip_dir: str, mun_code: int) -> list:
     """
     # Create list of zip contents.
     zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
-    # Create set of shapefiles name only.
+    # Create set of shapefile names only.
     shps_to_check = set(
         shp.removeprefix(f"DUP_{mun_code}/Data/").removesuffix(".shp")
         for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp
+        if shp.endswith(".shp")
     )
     # If any layers are unknown, put them into the list.
     # Names of all known shapefiles are stored in js_tables from
@@ -183,7 +183,7 @@ def shp_within_mun(
     shps_to_check = set(
         shp.removeprefix(f"DUP_{mun_code}/Data/").removesuffix(".shp")
         for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp
+        if shp.endswith(".shp")
     )
     # Checking process announcement title.
     separator = "-" * 150
@@ -201,16 +201,16 @@ def shp_within_mun(
             # If non-mandatory shapefile is not empty, run process below.
             if (
                 gpd.read_file(
-                    f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
+                    f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp",
                 ).empty
                 is False
             ):
                 shp_gdf = gpd.read_file(
-                    f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
+                    f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp",
                 )
                 # Create GeoDataFrame from ReseneUzemi_p shapefile.
                 mun_borders_gdf = gpd.read_file(
-                    f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/ReseneUzemi_p.shp"
+                    f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/ReseneUzemi_p.shp",
                 )
                 # Create Polygon geometry from GeoDataFrame coordinates.
                 borders_polygon = Polygon(mun_borders_gdf.get_coordinates())
@@ -319,7 +319,7 @@ def covered_mun(
     shps_in_zip = set(
         shp.removeprefix(f"DUP_{mun_code}/Data/").removesuffix(".shp")
         for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp
+        if shp.endswith(".shp")
     )
     # Create list with needed shapefile names.
     shps_to_check = ["PlochyRZV_p", "ReseneUzemi_p", "KoridoryP_p"]
@@ -338,7 +338,7 @@ def covered_mun(
         is False
         and shps_to_check[1] in shps_in_zip
         and gpd.read_file(
-            f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shps_to_check[0]}.shp"
+            f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shps_to_check[1]}.shp"
         ).empty
         is False
     ):
@@ -391,7 +391,7 @@ def covered_mun(
 
                 print(
                     f"Error: 'ReseneUzemi_p.shp' is not fully covered by 'PlochyRZV_p.shp'.",
-                    f"       - There are {len(exploded.geometry)} feature(s) that does not cover 'ReseneUzemi_p.shp'.",
+                    f"       - There are {len(exploded.geometry)} feature(s) not covering 'ReseneUzemi_p.shp'.",
                     f"       - These parts were saved as 'not_cover_reseneuzemi_p.shp'",
                     sep="\n",
                 )
@@ -399,7 +399,7 @@ def covered_mun(
             else:
                 print(
                     f"Error: 'ReseneUzemi_p.shp' is not fully covered by 'PlochyRZV_p.shp'.",
-                    f"       - There are {len(exploded.geometry)} feature(s) that does not cover 'ReseneUzemi_p.shp'.",
+                    f"       - There are {len(exploded.geometry)} feature(s) not covering 'ReseneUzemi_p.shp'.",
                     sep="\n",
                 )
         # If KoridoryP_p.shp exists and is not empty.
@@ -444,7 +444,7 @@ def covered_mun(
 
                 print(
                     f"Error: 'ReseneUzemi_p.shp' is not fully covered by 'PlochyRZV_p.shp' and 'KoridoryP_p.shp'.",
-                    f"       - There are {len(exploded.geometry)} feature(s) that does not cover 'reseneuzemi_p.shp'.",
+                    f"       - There are {len(exploded.geometry)} feature(s) not covering 'reseneuzemi_p.shp'.",
                     f"       - These part were saved as 'not_cover_reseneuzemi_p.shp'",
                     sep="\n",
                 )
@@ -452,7 +452,7 @@ def covered_mun(
             else:
                 print(
                     f"Error: 'ReseneUzemi_p' is not fully covered by 'PlochyRZV_p' and 'KoridoryP_p'.",
-                    f"       - There are {len(exploded.geometry)} feature(s) that does not cover 'ReseneUzemi_p.shp'.",
+                    f"       - There are {len(exploded.geometry)} feature(s) not covering 'ReseneUzemi_p.shp'.",
                     sep="\n",
                 )
 
@@ -503,9 +503,9 @@ def check_gaps(
     zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
     # Create set of all shapefiles' names only.
     shps_to_check = set(
-        shp.removeprefix("DUP_123456/Data/").removesuffix(".shp")
+        shp.removeprefix(f"DUP_{mun_code}/Data/").removesuffix(".shp")
         for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp
+        if shp.endswith(".shp")
     )
     # Checking process announcement title.
     separator = "-" * 150
@@ -523,7 +523,7 @@ def check_gaps(
             # If non-mandatory is not empty, run process below.
             if (
                 gpd.read_file(
-                    f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
+                    filename=f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp",
                 ).empty
                 is False
             ):
@@ -745,9 +745,9 @@ def check_overlaps(
     zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
     # Create set of shapefiles' names (VpsVpoAs shapefiles) are not included.
     shps_to_check = set(
-        shp.removeprefix("DUP_123456/Data/").removesuffix(".shp")
+        shp.removeprefix(f"DUP_{mun_code}/Data/").removesuffix(".shp")
         for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp and "VpsVpoAs" not in shp
+        if shp.endswith(".shp") and "VpsVpoAs" not in shp
     )
     # Checking process announcement title.
     separator = "-" * 150
@@ -1026,6 +1026,11 @@ def vu_within_uses(
     # Create GeoDataFrames from paths above.
     uses_gdf = gpd.read_file(uses_p_path)
     vpsvpoas_gdf = gpd.read_file(vpsvpoas_p_path)
+    # Create list of column names from vpsvpoas_gdf.
+    col_names = vpsvpoas_gdf.columns.tolist()
+    # Change column names to lowecase.
+    for col in col_names:
+        vpsvpoas_gdf.rename(columns={col: col.lower()}, inplace=True)
     # Filter rows with "VU" values.
     vpsvpoas_vu = vpsvpoas_gdf[vpsvpoas_gdf["id"].str.startswith("VU")]
     # Reset index to filtered rows (starts from 0).
@@ -1149,6 +1154,11 @@ def p_within_zu(
     # Create GeoDataFrames from paths above.
     zu_gdf = gpd.read_file(zu_p_path)
     pz_gdf = gpd.read_file(pz_p_path)
+    # Create list of column names from pz_gdf.
+    col_names = pz_gdf.columns.tolist()
+    # Change column names to lowecase.
+    for col in col_names:
+        pz_gdf.rename(columns={col: col.lower()}, inplace=True)
     # Filter 'P' features from pz_gdf.
     pz_p = pz_gdf[pz_gdf["id"].str.startswith("P")]
     # Reset index from filtered rows (starts from 0).
@@ -1272,6 +1282,11 @@ def k_outside_zu(
     # Create GeoDataFrames from paths above.
     zu_gdf = gpd.read_file(zu_p_path)
     pz_gdf = gpd.read_file(pz_k_path)
+    # Create list of column names from pz_gdf.
+    col_names = pz_gdf.columns.tolist()
+    # Change column names to lowecase.
+    for col in col_names:
+        pz_gdf.rename(columns={col: col.lower()}, inplace=True)
     # Filter rows with 'K' features.
     pz_k = pz_gdf[pz_gdf["id"].str.startswith("K")]
     # Reset index for filtered rows (starts from 0).
