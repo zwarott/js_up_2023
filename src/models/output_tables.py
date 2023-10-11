@@ -15,4 +15,9 @@ js_tables = [
     "SystemVerProstr_p",
 ]
 
-mandatory_tables = ["ReseneUzemi_p", "ZastaveneUzemi_p", "PlochyRZV_p", "PlochyZmen_p"]
+mandatory_tables = [
+    "ReseneUzemi_p",
+    "ZastaveneUzemi_p",
+    "PlochyRZV_p",
+    "PlochyZmen_p",
+]

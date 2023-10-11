@@ -1,6 +1,9 @@
 values = {
     "obecne": {
-        "cash": [1, 2],
+        "cash": [
+            1,
+            2,
+        ],
         "typ": [
             "BU",  # B
             "BV",
@@ -79,13 +82,53 @@ values = {
             "XX",
         ],
     },
-    "uzemniprvkyrp_p": {"id": ["U."]},
-    "plochyrzv_p": {"index": []},  # ???
-    "uzemnirezervy_p": {"id": ["R."]},
-    "koridoryp_p": {"id": ["CPU.", "CPZ."]},
-    "koridoryn_p": {"id": ["CNU.", "CNZ."]},
-    "plochyzmen_p": {"id": ["Z.", "P.", "K."], "etapizace": ["E", None]},
-    "plochypodm_p": {"id": ["RP.", "US.", "DO.", "DR.", "DU."]},
+    "uzemniprvkyrp_p": {
+        "id": [
+            "U.",
+        ],
+    },
+    "plochyrzv_p": {
+        "index": [
+            # ???
+        ],
+    },
+    "uzemnirezervy_p": {
+        "id": [
+            "R.",
+        ],
+    },
+    "koridoryp_p": {
+        "id": [
+            "CPU.",
+            "CPZ.",
+        ],
+    },
+    "koridoryn_p": {
+        "id": [
+            "CNU.",
+            "CNZ.",
+        ],
+    },
+    "plochyzmen_p": {
+        "id": [
+            "Z.",
+            "P.",
+            "K.",
+        ],
+        "etapizace": [
+            "E",
+            None,
+        ],
+    },
+    "plochypodm_p": {
+        "id": [
+            "RP.",
+            "US.",
+            "DO.",
+            "DR.",
+            "DU.",
+        ],
+    },
     "vpsvpoas": {
         "id": [
             "VD.",
@@ -102,7 +145,7 @@ values = {
             "VA.",
             "PO.",
             "PP.",
-        ]
+        ],
     },
     "uses_p": {
         "typ": [
