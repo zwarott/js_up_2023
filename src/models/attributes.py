@@ -2,7 +2,7 @@ attributes = {
     "reseneuzemi_p": [
         "obec_kod",
     ],
-    "uzemniprvkyrp_p": [
+    "uzemiprvkyrp_p": [
         "id",
     ],
     "zastaveneuzemi_p": [
@@ -45,7 +45,7 @@ attributes = {
     "systemsidelnizelene_p": [
         "obec_kod",
     ],
-    "systemverprostr": [
+    "systemverprostr_p": [
         "obec_kod",
     ],
 }
@@ -98,7 +98,7 @@ attribute_types = {
     "systemsidelnizelene_p": {
         "obec_kod": "int64",
     },
-    "systemverprostr": {
+    "systemverprostr_p": {
         "obec_kod": "int64",
     },
 }

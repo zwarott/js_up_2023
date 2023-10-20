@@ -82,7 +82,7 @@ values = {
             "XX",
         ],
     },
-    "uzemniprvkyrp_p": {
+    "uzemiprvkyrp_p": {
         "id": [
             "U.",
         ],

@@ -1,6 +1,6 @@
 js_tables = [
     "ReseneUzemi_p",
-    "UzemniPrvkyRP_p",
+    "UzemiPrvkyRP_p",
     "ZastaveneUzemi_p",
     "PlochyRZV_p",
     "UzemniRezervy_p",

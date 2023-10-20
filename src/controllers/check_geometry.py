@@ -10,6 +10,7 @@ from shapely.geometry import Point
 from shapely.validation import explain_validity
 
 from config import engine
+from src.controllers.check_relationships import shps_in_zip
 
 
 def postgis_to_wkt(schema_name: str, table_name: str) -> GeoDataFrame:
@@ -266,20 +267,15 @@ def check_validity_shp_dir(dir_path: str, export_invalid: bool = False) -> None:
 
 
 def check_validity_shp_zip(
-    zip_dir: str, mun_code: int, export_invalid: bool = False
-) -> None:
-    # Star time of checking process.
-    start_time = time()
-    # Create dictionary with zip contents.
-    zip_contents = zipfile.ZipFile(f"{zip_dir}/DUP_{mun_code}.zip").namelist()
-    # Create set with shapefile names only.
-    shps_to_check = set(
-        shp.removeprefix("DUP_123456/Data/").removesuffix(".shp")
-        for shp in zip_contents
-        if ".shp" in shp and "xml" not in shp
-    )
-    single_sep = "-" * 70
-    for shp in shps_to_check:
+    zip_dir: str,
+    dest_dir_path: str,
+    mun_code: int,
+    shp: str,
+    export_invalid: bool = False,
+):
+    try:
+        spaces = "   "
+        print(spaces)
         # GeoSeries from shp.
         gdf_from_shp = gpd.read_file(
             f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
@@ -292,8 +288,6 @@ def check_validity_shp_zip(
         invalid_count = 0
         # Print overview of invalid geometries (cause and coordinates).
         invalidity = []
-        # Print overview of invalid geometries (cause and coordinates).
-        print(f"Checking Validity Details: shapefile '{shp}.shp'")
         # Check geometry for each record (row).
         for geometry in shp_to_check:
             # If geometry is not valid, print cause with coordinates,
@@ -301,7 +295,6 @@ def check_validity_shp_zip(
             # counting.
             if not explain_validity(geometry) == "Valid Geometry":
                 inv_reason = explain_validity(geometry)
-                print(inv_reason)
                 invalidity.append(inv_reason)
                 invalid_geom.append(to_wkt(geometry))
                 invalid_count += 1
@@ -313,9 +306,7 @@ def check_validity_shp_zip(
         # If all geometries are valid, print statement about it.
         if invalid_count == 0:
             print(
-                f"All geometries in shapefile {shp} are valid.",
-                single_sep,
-                sep="\n",
+                f"OK: All geometries in shapefile {shp} are valid.",
             )
         # If there are some invalid geometries and these geometries need to be
         # exported, they will be saved as shapefiles. Also print number ot them
@@ -328,8 +319,6 @@ def check_validity_shp_zip(
             # Create GeoDataFrame from 'geom_col' as geometry and 'inv_col' as a
             # invalidity reason containg reason and coordinates.
             gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="epsg:5514")
-            # Path of destination directory (where will be invalid data saved).
-            dest_dir_path = "./src/models/data/zc3_up_hrabisin/output/"
             # Save these invalid data as shapefiles.
             gdf.to_file(f"{dest_dir_path}{shp}_invalid.shp")
             # Stored path of each invalid shapefile.
@@ -369,19 +358,23 @@ def check_validity_shp_zip(
                 f"Number of invalid geometries: {invalid_count}.",
                 f"Invalid geometries from shapefile '{shp}.shp' were saved to {abs_path}.",
                 f"Invalid geometry locations from shapefile '{shp}.shp' were saved to {abs_path_2}.",
-                single_sep,
                 sep="\n",
             )
         # If I do not need export invalied geometries, only print their number.
-        else:
+        elif invalid_count > 0:
             print(
+                "Error: There are invalid geometries:",
                 f"Number of invalid geometries: {invalid_count}.",
-                single_sep,
+                "Invalidity reason:",
+                *invalidity,
                 sep="\n",
             )
-    # In the end, print checking time.
-    duration = time() - start_time
-    print(f"Checking time: {duration:.2f} s.")
+    except Exception as err:
+        print(f"Unexpected {err=}, {type(err)=}")
+        raise
+
+    print(spaces)
+    return invalid_count
 
 
 def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -> None:
