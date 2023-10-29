@@ -15,21 +15,21 @@ def allowed_values(
     shp: str,
     export_values: bool = False,
 ):
-    """Check for permissible values within shapefile.
+    """Checking permissible values within shapefile.
 
-    Check for permissible values within each shapefile in zipped file.
+    Check, if permissible values within each shapefile are in zip file.
     If file contains shapefiles that has unknown name, checking process
     will be for this shapefile skipped.
 
     Parameters
     ----------
     zip_dir : str
-        A path to directory, where are zipped files stored.
+        A path to directory, where zip file is stored.
     dest_dir_path : str
         A path to directory, where will be wrong values saved.
     mun_code : int
         A unique code of particular municipality, for which
-        are these spatial data tested.
+        are these data tested.
     export_values : bool
         A boolean value for exporting features with wrong values.
         Default value is set up as False (for not exporting these
@@ -50,7 +50,8 @@ def allowed_values(
         included = [
             attr for attr in attrs_to_check if attr.lower() in attributes[shp.lower()]
         ]
-        missing = set(attributes[shp.lower()]).difference(set(included))
+        included_lower = [attr.lower() for attr in included] 
+        missing = set(attributes[shp.lower()]).difference(set(included_lower))
         wrong_values_info = []
         wrong_values_geom = []
         for attr in included:
@@ -62,33 +63,38 @@ def allowed_values(
                     "systemsidelnizelene_p",
                     "systemverprostr_p",
                 ]
-                and attr not in missing
+                and attr.lower() not in missing
             ):
                 for row in range(shp_gdf[attr].count()):
                     if (
                         shp_gdf[attr][row] == mun_code
-                        and shp_gdf[attr][row] is not None
                     ):
                         pass
                     else:
                         wrong_values_info.append(shp_gdf[attr][row])
                         wrong_values_geom.append(shp_gdf.geometry[row])
-            elif shp.lower() == "uzemniprvkyrp_p" and attr not in missing:
+            elif shp.lower() == "uzemiprvkyrp_p" and attr.lower() not in missing:
                 for row in range(shp_gdf[attr].count()):
                     if (
-                        shp_gdf[attr][row] in values["uzemniprvkyrp_p"]["id"]
-                        and shp_gdf[attr][row] is not None
+                        shp_gdf[attr][row] is None
+                    ):
+                        wrong_values_info.append(shp_gdf[attr][row])
+                        wrong_values_geom.append(shp_gdf.geometry[row])
+
+                    elif (
+                        # If i want to parse row value, I need to make sure, row number is not empty.
+                        shp_gdf[attr][row] is not None
+                        and shp_gdf[attr][row][:2] in values[shp.lower()]["id"]
                     ):
                         pass
                     else:
                         wrong_values_info.append(shp_gdf[attr][row])
                         wrong_values_geom.append(shp_gdf.geometry[row])
-            elif shp.lower() == "plochyrzv_p" and attr not in missing:
+            elif shp.lower() == "plochyrzv_p" and attr.lower() not in missing:
                 if attr == "cash":
                     for row in range(shp_gdf[attr].count()):
                         if (
                             shp_gdf[attr][row] in values["obecne"]["cash"]
-                            and shp_gdf[attr][row] is not None
                         ):
                             pass
                         else:
@@ -98,7 +104,6 @@ def allowed_values(
                     for row in range(shp_gdf[attr].count()):
                         if (
                             shp_gdf[attr][row] in values["obecne"]["typ"]
-                            and shp_gdf[attr][row] is not None
                         ):
                             pass
                         else:
@@ -106,24 +111,32 @@ def allowed_values(
                             wrong_values_geom.append(shp_gdf.geometry[row])
                 elif attr == "index":
                     for row in range(shp_gdf[attr].count()):
-                        if shp_gdf[attr][row] is not None and shp_gdf["Typ"] == "AP":
+                        if shp_gdf[attr][row] is not None and shp_gdf["Typ"][row] == "AP":
                             if shp_gdf[attr][row] in ["p", "t"]:
                                 pass
                             else:
                                 wrong_values_info.append(shp_gdf[attr][row])
                                 wrong_values_geom.append(shp_gdf.geometry[row])
-                        elif shp_gdf[attr][row] is not None and shp_gdf["Typ"] == "LU":
+                        elif shp_gdf[attr][row] is not None and shp_gdf["Typ"][row] == "LU":
                             if shp_gdf[attr][row] in ["h", "o", "z"]:
                                 pass
                             else:
                                 wrong_values_info.append(shp_gdf[attr][row])
                                 wrong_values_geom.append(shp_gdf.geometry[row])
+                        else:
+                            pass
             elif shp.lower() == "uzemnirezervy_p" and attr not in missing:
                 if attr == "id":
                     for row in range(shp_gdf[attr].count()):
                         if (
-                            shp_gdf[attr][row][:2] in values["uzemnirezervy_p"]["id"]
-                            and shp_gdf[attr][row] is not None
+                            shp_gdf[attr][row] is None
+                        ):
+                            wrong_values_info.append(shp_gdf[attr][row])
+                            wrong_values_geom.append(shp_gdf.geometry[row])
+
+                        elif (
+                            # If i want to parse row value, I need to make sure, row number is not empty.
+                            shp_gdf[attr][row][:2] in values[shp.lower()]["id"]
                         ):
                             pass
                         else:
@@ -133,7 +146,6 @@ def allowed_values(
                     for row in range(shp_gdf[attr].count()):
                         if (
                             shp_gdf[attr][row] in values["obecne"]["typ"]
-                            and shp_gdf[attr][row] is not None
                         ):
                             pass
                         else:
@@ -143,8 +155,13 @@ def allowed_values(
                 if attr == "id":
                     for row in range(shp_gdf[attr].count()):
                         if (
-                            shp_gdf[attr][row][:4] in values["koridoryp_p"]["id"]
-                            and shp_gdf[attr][row] is not None
+                            shp_gdf[attr][row] is None
+                        ):
+                            wrong_values_info.append(shp_gdf[attr][row])
+                            wrong_values_geom.append(shp_gdf.geometry[row])
+                        elif (
+                            # If i want to parse row value, I need to make sure, row number is not empty.
+                            shp_gdf[attr][row][:4] in values[shp.lower()]["id"]
                         ):
                             pass
                         else:
@@ -154,8 +171,13 @@ def allowed_values(
                 if attr == "id":
                     for row in range(shp_gdf[attr].count()):
                         if (
-                            shp_gdf[attr][row][:4] in values["koridoryn_p"]["id"]
-                            and shp_gdf[attr][row] is not None
+                            shp_gdf[attr][row] is None
+                        ):
+                            wrong_values_info.append(shp_gdf[attr][row])
+                            wrong_values_geom.append(shp_gdf.geometry[row])
+                        elif (
+                            # If i want to parse row value, I need to make sure, row number is not empty.
+                            shp_gdf[attr][row][:4] in values[shp.lower()]["id"]
                         ):
                             pass
                         else:
@@ -165,8 +187,13 @@ def allowed_values(
                 if attr == "id":
                     for row in range(shp_gdf[attr].count()):
                         if (
-                            shp_gdf[attr][row][:2] in values["plochyzmen_p"]["id"]
-                            and shp_gdf[attr][row] is not None
+                            shp_gdf[attr][row] is None
+                        ):
+                            wrong_values_info.append(shp_gdf[attr][row])
+                            wrong_values_geom.append(shp_gdf.geometry[row])
+                        elif (
+                            # If i want to parse row value, I need to make sure, row number is not empty.
+                            shp_gdf[attr][row][:2] in values[shp.lower()]["id"]
                         ):
                             pass
                         else:
@@ -175,8 +202,7 @@ def allowed_values(
                 elif attr == "etapizace":
                     for row in range(shp_gdf[attr].count()):
                         if (
-                            shp_gdf[attr][row] in values["plochyzmen_p"]["etapizace"]
-                            and shp_gdf[attr][row] is not None
+                            shp_gdf[attr][row] in values[shp.lower()]["etapizace"]
                         ):
                             pass
                         else:
@@ -185,10 +211,15 @@ def allowed_values(
             elif shp.lower() == "plochypodm_p" and attr not in missing:
                 if attr == "id":
                     for row in range(shp_gdf[attr].count()):
-                        if shp_gdf[attr][row] is None:
+                        if (
+                            shp_gdf[attr][row] is None
+                        ):
                             wrong_values_info.append(shp_gdf[attr][row])
                             wrong_values_geom.append(shp_gdf.geometry[row])
-                        elif shp_gdf[attr][row][:3] in values["plochypodm_p"]["id"]:
+                        # If i want to parse row value, I need to make sure, row number is not empty.
+                        elif (
+                            shp_gdf[attr][row][:3] in values[shp.lower()]["id"]
+                        ):
                             pass
                         else:
                             wrong_values_info.append(shp_gdf[attr][row])
@@ -196,8 +227,16 @@ def allowed_values(
                 elif attr == "datum":
                     for row in range(shp_gdf[attr].count()):
                         if (
+                            # If i want to parse row value, I need to make sure, row number is not empty.
                             shp_gdf[attr][row] == date.today().strftime("%Y-%m-%d")
-                            and shp_gdf[attr][row] is not None
+                            and shp_gdf["id"][row] is not None
+                            and shp_gdf["id"][row][:3] in values[shp.lower()][attr][:2] 
+                        ):
+                            pass
+                        elif (
+                            shp_gdf[attr][row] is None
+                            and shp_gdf["id"][row] is not None
+                            and shp_gdf["id"][row][:3] in values[shp.lower()][attr][2:]
                         ):
                             pass
                         else:
@@ -205,10 +244,13 @@ def allowed_values(
                             wrong_values_geom.append(shp_gdf.geometry[row])
             elif shp.lower().startswith("vpsvpoas") and attr not in missing:
                 for row in range(shp_gdf[attr].count()):
-                    if shp_gdf[attr][row] is None:
+                    if (
+                        shp_gdf[attr][row] is None
+                    ):
                         wrong_values_info.append(shp_gdf[attr][row])
                         wrong_values_geom.append(shp_gdf.geometry[row])
                     elif (
+                        # If i want to parse row value, I need to make sure, row number is not empty.
                         shp_gdf[attr][row][:3] in values["vpsvpoas"]["id"]
                         or shp_gdf[attr][row][:4] in values["vpsvpoas"]["id"]
                     ):
@@ -221,7 +263,6 @@ def allowed_values(
                     for row in range(shp_gdf[attr].count()):
                         if (
                             shp_gdf[attr][row] in values["obecne"]["cash"]
-                            and shp_gdf[attr][row] is not None
                         ):
                             pass
                         else:
@@ -231,7 +272,6 @@ def allowed_values(
                     for row in range(shp_gdf[attr].count()):
                         if (
                             shp_gdf[attr][row] in values["uses_p"]["typ"]
-                            and shp_gdf[attr][row] is not None
                         ):
                             pass
                         else:
@@ -239,7 +279,9 @@ def allowed_values(
                             wrong_values_geom.append(shp_gdf.geometry[row])
                 elif attr == "oznaceni":
                     for row in range(shp_gdf[attr].count()):
-                        if shp_gdf[attr][row] is None:
+                        if (
+                            shp_gdf[attr][row] is None
+                        ):
                             wrong_values_info.append(shp_gdf[attr][row])
                             wrong_values_geom.append(shp_gdf.geometry[row])
                         elif (
@@ -255,7 +297,9 @@ def allowed_values(
 
         if len(wrong_values_geom) > 0 and export_values is False:
             print(
-                f"Error: There are {len(wrong_values_geom)} feature(s) in {shp}.shp that do(es) not respect(s) convention.",
+                "Error: There are features that do not respect convention.",
+                f"      - Number of features not respecting convention: {len(wrong_values_geom)}.",
+                sep="\n"
             )
         elif len(wrong_values_geom) > 0 and export_values is True:
             wrong_values_geom_col = gpd.GeoSeries(
@@ -273,12 +317,13 @@ def allowed_values(
                 driver="ESRI Shapefile",
             )
             print(
-                f"Error: There are {len(wrong_values_info)} feature(s) in {shp} that do(es) not respect(s) convention.",
-                f"       - These parts were saved as '{shp.lower()}_wrong_values.shp'.",
+                "Error: There are features that do not respect convention.",
+                f"      - Number of features not respecting convention: {len(wrong_values_geom)}.",
+                f"      - These parts were saved as '{shp.lower()}_wrong_values.shp'.",
                 sep="\n",
             )
         else:
-            print(f"Ok: Feature(s) in {shp} respect(s) convention.")
+            print(f"Ok: All features respect convention.")
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")

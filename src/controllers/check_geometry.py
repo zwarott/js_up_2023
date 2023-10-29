@@ -1,5 +1,4 @@
 import os
-import zipfile
 from time import time
 
 import geopandas as gpd
@@ -10,11 +9,10 @@ from shapely.geometry import Point
 from shapely.validation import explain_validity
 
 from config import engine
-from src.controllers.check_relationships import shps_in_zip
 
 
 def postgis_to_wkt(schema_name: str, table_name: str) -> GeoDataFrame:
-    """Convert PostGIS table into a WKT.
+    """Converting PostGIS table into a WKT.
 
     Convert PostGIS table into a WKT format by specifying
     PostGIS schema name and particular table.
@@ -32,14 +30,14 @@ def postgis_to_wkt(schema_name: str, table_name: str) -> GeoDataFrame:
     sql = f"SELECT geometry FROM {schema_name}.{table_name}"
     # GeoDataFrame from PostGIS table.
     gdf_from_postgis = gpd.GeoDataFrame.from_postgis(
-        crs="epsg:5514", sql=sql, con=engine, geom_col="geometry"
+        crs="EPSG:5514", sql=sql, con=engine, geom_col="geometry"
     )
     # Return geometry attribute in WKT.
     return from_wkt(gdf_from_postgis.to_wkt())
 
 
 def shp_to_wkt(shp_path: str) -> GeoSeries:
-    """Convert ESRI Shapefile intp a WKT.
+    """Convert ESRI Shapefile into a WKT.
 
     Convert ESRI Shapefile into a WKT format by specifying
     path to this shapefile.
@@ -57,7 +55,7 @@ def shp_to_wkt(shp_path: str) -> GeoSeries:
 
 
 def check_validity_postgis(schema_name: str, table_name: str) -> None:
-    """Check gaometry validity of PostGIS table.
+    """Checking geometry validity of PostGIS table.
 
     Check geometry validity of PostGIS table that was converted
     into WKT format using postgis_to_wkt() user function. Need to
@@ -109,11 +107,11 @@ def check_validity_postgis(schema_name: str, table_name: str) -> None:
 
 
 def check_validity_shp(shp_path: str) -> None:
-    """Check gaometry validity of ESRI Shapefile.
+    """Checking geometry validity of ESRI Shapefile.
 
     Check geometry validity of ESRI Shapefile that was converted
     into WKT format using shp_to_wkt() user function. Need to
-    specify path to spafile as parameter for function converting
+    specify path to shapefile as parameter for function converting
     shapefile into WKT. It prints infromation about geometry validity
     within particular shapefile.
 
@@ -159,6 +157,22 @@ def check_validity_shp(shp_path: str) -> None:
 
 
 def check_validity_shp_dir(dir_path: str, export_invalid: bool = False) -> None:
+    """Checking geometry validity of ESRI Shapefiles in directory.
+
+    Check gometry validity of all ESRI Shapefiles in specific
+    directory. Need to specify path to directory with shapefiles as 
+    parameter for function converting shapefile into WKT. It prints 
+    infromation about geometry validity within particular shapefile.
+
+    Parameters
+    ----------
+    dir_path : str
+        A string representing path to direcotry with shapefiles.
+    export_ivalid : bool
+        A boolean value that specify order for exporting any invalid
+        geometries, if exist. Default values is set up as False (not
+        export). For exporting invalid geometries, put True.
+    """
     # Start time of checking process.
     start_time = time()
     # Create set of shapefiles (only *.shp needed).
@@ -204,12 +218,12 @@ def check_validity_shp_dir(dir_path: str, export_invalid: bool = False) -> None:
         # and destination of exported shapefiles.
         elif invalid_count > 0 and export_invalid is True:
             # Convert infromation about geometry from WKT into GeoSeries.
-            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="epsg:5514")
+            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="EPSG:5514")
             # Set up a new column with values stored in list above.
             inv_col = {"invalidity": invalidity}
             # Create GeoDataFrame from 'geom_col' as geometry and 'inv_col' as a
             # invalidity reason containg reason and coordinates.
-            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="epsg:5514")
+            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="EPSG:5514")
             # Path of destination directory (where will be invalid data saved).
             dest_dir_path = "./src/models/data/zc3_up_hrabisin/output/"
             # Save these invalid data as shapefiles.
@@ -237,7 +251,7 @@ def check_validity_shp_dir(dir_path: str, export_invalid: bool = False) -> None:
             geom = [Point(v) for v in coords_tuple]
             # Step 8 -> Create GeoDataFrame including geometry column and column with
             # error causes.
-            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="epsg:5514")
+            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="EPSG:5514")
             # Step 9 -> Export GeoDataFrame as shapefile.
             points_gdf.to_file(f"{dest_dir_path}{shp}_invalid_location.shp")
             # Save absolute path of exported shapefile.
@@ -266,13 +280,96 @@ def check_validity_shp_dir(dir_path: str, export_invalid: bool = False) -> None:
     print(f"Checking time: {duration:.2f} s.")
 
 
+def validity_shp_zip(
+    zip_dir: str,
+    mun_code: int,
+    shp: str,
+) -> int:
+    """Checking shapefile validity in zip file.
+    
+    Check, if certain shapefile in zip file is 
+    valid. This user function is created for testing
+    validity within other function without printing
+    any information as output.
+
+    Parameters
+    ----------
+    zip_dir : str
+        A path to directory, where zip file is stored.
+    mun_code : int
+        A unique code of particular municipality, for which
+        is certain shapefile tested.
+    shp : str
+        A shapefile name, for which are geometry validity 
+        tested.
+
+    Returns:
+    --------
+    int
+        Number of invalid geometries.
+    """
+    # GeoSeries from shp.
+    gdf_from_shp = gpd.read_file(
+        f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
+    )
+    # Convert shp attribute (geometry) into wkt.
+    shp_to_check = from_wkt(gdf_from_shp.geometry.to_wkt())
+    # List of invalid geometries.
+    invalid_geom = []
+    # Print overview of invalid geometries (cause and coordinates).
+    invalidity = []
+    # Check geometry for each record (row).
+    for geometry in shp_to_check:
+        # If geometry is not valid, print cause with coordinates,
+        # put it into list with invalid geometries and add it into
+        # counting.
+        if not explain_validity(geometry) == "Valid Geometry":
+            inv_reason = explain_validity(geometry)
+            invalidity.append(inv_reason)
+            invalid_geom.append(to_wkt(geometry))
+
+        # If geometry is valid, pass.
+        else:
+            pass
+    return len(invalid_geom)
+
+
 def check_validity_shp_zip(
     zip_dir: str,
     dest_dir_path: str,
     mun_code: int,
     shp: str,
-    export_invalid: bool = False,
+    export: bool = False,
 ):
+    """Checking validity of certain shapefile in zip file.
+
+    Check, if certain shapefile in zip file is valid. This 
+    user function is created for single testing that prints
+    information about validity and invalid geometries.
+
+    Parameters
+    ----------
+    zip_dir : str
+        A path to directory, where  zip file is stored.
+    dest_dir_path : str
+        A path to directory, where will be invalid geometries saved.
+    mun_code : int
+        A unique code of particular municipality, for which
+        is certain shapefile tested.
+    shp : str
+        A shapefile name, for which are geometry validity 
+        tested.
+    export : bool
+        A boolean value for exporting invalid geometries. 
+        Default value is set up as False (for not exporting these 
+        differences). For exporting these differences, put True.
+
+    Returns
+    -------
+    int
+        Number of invalid geometries.
+
+    """
     try:
         spaces = "   "
         print(spaces)
@@ -284,8 +381,6 @@ def check_validity_shp_zip(
         shp_to_check = from_wkt(gdf_from_shp.geometry.to_wkt())
         # List of invalid geometries.
         invalid_geom = []
-        # Number of invalid geometries.
-        invalid_count = 0
         # Print overview of invalid geometries (cause and coordinates).
         invalidity = []
         # Check geometry for each record (row).
@@ -297,32 +392,29 @@ def check_validity_shp_zip(
                 inv_reason = explain_validity(geometry)
                 invalidity.append(inv_reason)
                 invalid_geom.append(to_wkt(geometry))
-                invalid_count += 1
 
             # If geometry is valid, pass.
             else:
                 pass
 
         # If all geometries are valid, print statement about it.
-        if invalid_count == 0:
+        if len(invalid_geom) == 0:
             print(
-                f"OK: All geometries in shapefile {shp} are valid.",
+                f"OK: All geometries are valid.",
             )
         # If there are some invalid geometries and these geometries need to be
         # exported, they will be saved as shapefiles. Also print number ot them
         # and destination of exported shapefiles.
-        elif invalid_count > 0 and export_invalid is True:
+        elif len(invalid_geom) > 0 and export is True:
             # Convert infromation about geometry from WKT into GeoSeries.
-            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="epsg:5514")
+            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="EPSG:5514")
             # Set up a new column with values stored in list above.
             inv_col = {"invalidity": invalidity}
             # Create GeoDataFrame from 'geom_col' as geometry and 'inv_col' as a
             # invalidity reason containg reason and coordinates.
-            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="epsg:5514")
+            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="EPSG:5514")
             # Save these invalid data as shapefiles.
-            gdf.to_file(f"{dest_dir_path}{shp}_invalid.shp")
-            # Stored path of each invalid shapefile.
-            abs_path = os.path.abspath(f"{dest_dir_path}/{shp}_invalid.shp")
+            gdf.to_file(f"{dest_dir_path}/{shp.lower()}_invalid.shp")
             # Export point layer that include error locations.
             # Step 1 -> String containing characters to remove.
             to_remove_1 = (
@@ -344,37 +436,29 @@ def check_validity_shp_zip(
             geom = [Point(v) for v in coords_tuple]
             # Step 8 -> Create GeoDataFrame including geometry column and column with
             # error causes.
-            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="epsg:5514")
+            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="EPSG:5514")
             # Step 9 -> Export GeoDataFrame as shapefile.
-            points_gdf.to_file(f"{dest_dir_path}{shp}_invalid_location.shp")
-            # Save absolute path of exported shapefile.
-            abs_path_2 = os.path.abspath(
-                (f"{dest_dir_path}/{shp}_invalid_location.shp")
-            )
+            points_gdf.to_file(f"{dest_dir_path}/{shp.lower()}_invalid_location.shp")
             # Print infaromation about: which table contains invalid geometries,
             # number of invalid geometries and where these shapefiles were
             # saved (geometries with error and error locations).
             print(
-                f"Number of invalid geometries: {invalid_count}.",
-                f"Invalid geometries from shapefile '{shp}.shp' were saved to {abs_path}.",
-                f"Invalid geometry locations from shapefile '{shp}.shp' were saved to {abs_path_2}.",
+                f"Error: There are invalid geometries ({len(invalid_geom)}).",
+                f"       - Invalid geometries were saved as {shp.lower()}_invalid.shp",
+                f"       - Invalid geometry locations (points) were saved as {shp.lower()}_invalid_location.shp.",
                 sep="\n",
             )
         # If I do not need export invalied geometries, only print their number.
-        elif invalid_count > 0:
+        elif len(invalid_geom) > 0:
             print(
-                "Error: There are invalid geometries:",
-                f"Number of invalid geometries: {invalid_count}.",
-                "Invalidity reason:",
-                *invalidity,
-                sep="\n",
+                f"Error: There are invalid geometries ({len(invalid_geom)})."
             )
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
 
     print(spaces)
-    return invalid_count
+    return len(invalid_geom) 
 
 
 def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -> None:
@@ -439,12 +523,12 @@ def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -
         # and destination of exported shapefiles.
         elif invalid_count > 0 and export_invalid is True:
             # Convert infromation about geometry from WKT into GeoSeries.
-            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="epsg:5514")
+            geom_col = gpd.GeoSeries.from_wkt(data=invalid_geom, crs="EPSG:5514")
             # Set up a new column with values stored in list above.
             inv_col = {"invalidity": invalidity}
             # Create GeoDataFrame from 'geom_col' as geometry and 'inv_col' as a
             # invalidity reason containg reason and coordinates.
-            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="epsg:5514")
+            gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom_col, crs="EPSG:5514")
             # Path of destination directory (where will be invalid data saved).
             dest_dir_path = "./src/models/data/zc3_up_hrabisin/output/"
             # Save these invalid data as shapefiles.
@@ -472,7 +556,7 @@ def check_validity_postgis_all(schema_name: str, export_invalid: bool = False) -
             geom = [Point(v) for v in coords_tuple]
             # Step 8 -> Create GeoDataFrame including geometry column and column with
             # error causes.
-            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="epsg:5514")
+            points_gdf = gpd.GeoDataFrame(data=inv_col, geometry=geom, crs="EPSG:5514")
             # Step 9 -> Export GeoDataFrame as shapefile.
             points_gdf.to_file(
                 f"{dest_dir_path}{table}_invalid_location.shp",

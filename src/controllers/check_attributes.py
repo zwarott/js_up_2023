@@ -3,22 +3,31 @@ import geopandas as gpd
 from src.models.attributes import attributes, attribute_types
 
 
-def mandatory_attrs_exist(zip_dir: str, mun_code: int, shp: str):
-    """Check existence of mandatory attributes.
+def mandatory_attrs_exist(zip_dir: str, mun_code: int, shp: str) -> int:
+    """Checking existence of mandatory attributes.
 
-    Check, if all mandatory attributes within
-    each shapefile exist.
+    Check, if all mandatory attributes are within
+    certain shapefile.
 
     Parameters
     ----------
     zip_dir : str
-        A path to directory, where are zipped files stored.
+        A path to directory, where zip file is stored.
     mun_code : int
         A unique code of particular municipality, for which
-        are these spatial data tested.
+        are these data tested.
+    shp : str
+        A shapefile name, for which existence of mandatory
+        attributes is tested.
+
+    Returns
+    -------
+    int
+        A number of missing mandatory attributes.
     """
     spaces = " " * 150
     try:
+        # Geodataframe from input shapefile.
         shp_gdf = gpd.read_file(
             f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
         )
@@ -30,41 +39,52 @@ def mandatory_attrs_exist(zip_dir: str, mun_code: int, shp: str):
             attr.lower()
             for attr in attrs_to_check
             if attr.lower() in attributes[shp.lower()]
-        ]
+    ]
         # Crete set of attributes that are missing.
         # Set was created using difference method (mandatory - included).
         missing = set(attributes[shp.lower()]).difference(set(included))
         # If all mandatory attributes are include.
         if len(missing) == 0:
-            print(f"OK: All mandatory attributes in {shp} are included.")
+            print(f"OK: All mandatory attributes are included.")
         # If any mandatory attribute is missing.
         elif len(missing) > 0:
             for attr in missing:
-                print(f"Error: {attr} attribute in {shp} is missing.")
-
+                print(f"Error: {attr} attribute in is missing.")
+    # If any error occurs, print info about it.
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
     print(spaces)
-
+    
+    # Return number of missing attributes.
     return len(missing)
 
 
-def mandatory_attrs_type(zip_dir: str, mun_code: int, shp: str):
-    """Check for correct attribute types.
+def mandatory_attrs_type(zip_dir: str, mun_code: int, shp: str) -> int:
+    """Checking correct attribute types.
 
-    Check, if all mandatory attributes within
-    each shapefile has correct data type.
+    Check, if all mandatory attributes within certain shapefile 
+    have correct data type. Returns number of attributes that
+    have wrong data type.
 
     Parameters
     ----------
     zip_dir : str
-        A path to directory, where are zipped files stored.
+        A path to directory, where zip file is stored.
     mun_code : int
         A unique code of particular municipality, for which
-        are these spatial data tested.
+        are these data tested.
+    shp : str
+        A shapefile name, for which types of mandatory 
+        attributes are tested.
+
+    Returns
+    -------
+    int
+        Number of mandatory attributes with wrong types.
     """
     spaces = " " * 150
+    # Geodataframe from input shapefile.
     try:
         shp_gdf = gpd.read_file(
             f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
@@ -76,7 +96,9 @@ def mandatory_attrs_type(zip_dir: str, mun_code: int, shp: str):
         included = [
             attr for attr in attrs_to_check if attr.lower() in attributes[shp.lower()]
         ]
+        # List of attribute names that have wrong types.
         wrong_attr = []
+        # List of wrong attribute types.
         wrong_types = []
         # For each included attribute:
         for attr in included:
@@ -90,9 +112,10 @@ def mandatory_attrs_type(zip_dir: str, mun_code: int, shp: str):
         if len(wrong_types) == 0:
             print("Ok: All attributes have correct type.")
         else:
-            for i in wrong_attr:
-                print(f"Error: {i} attribute in {shp} has not correct type.")
+            for attr in wrong_attr:
+                print(f"Error: {attr} attribute has not correct type.")
 
+    # If any error occurs, print info about it.
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
