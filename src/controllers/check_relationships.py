@@ -3,6 +3,7 @@ from datetime import datetime
 import warnings
 
 import geopandas as gpd
+from numpy import empty
 from shapely.geometry import Polygon
 
 from src.models.output_tables import js_tables, mandatory_tables
@@ -150,16 +151,13 @@ def shp_info_standardized(zip_dir: str, mun_code: int) -> None:
     """
     # Create timestamp in format YYYY-MM-DD HH:MM:SS.
     time_info = datetime.today().isoformat(sep=" ", timespec="seconds")
-    spaces = " " * 150
-    indent_30 = "-" * 30
     print(
-        spaces,
+        "\n",
         f"Importing spatial plan of municipality with code {mun_code} started at {time_info}.",
-        spaces,
         sep="\n",
+        end="\n" * 2,
     )
-    print(indent_30, "Checking standardized layers", indent_30)
-    print(spaces)
+    print(" Checking standardized layers ".center(60, "-"), end="\n" * 2)
     # Create set of shapefile names in zipped file.
     shps_to_check = shps_in_zip(zip_dir, mun_code)
     # Crate list of missing standardized shapefiles.
@@ -231,11 +229,7 @@ def shp_info_non_standardized(zip_dir: str, mun_code: int) -> None:
         A unique code of particular municipality, for which
         are these relationships tested.
     """
-    spaces = " " * 150
-    indent_30 = "-" * 30
-    print(spaces)
-    print(indent_30, "Checking non-standardized layers", indent_30)
-    print(spaces)
+    print("Checking non-standardized layers ".center(60, "-"), end="\n" * 2)
     # Create set of shapefile names in zipped file.
     shps_to_check = shps_in_zip(zip_dir, mun_code)
     nstand_shps = [
@@ -260,8 +254,7 @@ def shp_info_non_standardized(zip_dir: str, mun_code: int) -> None:
         ) is False:
             print(
             f"Ok: {shp} is included.",
-            spaces,
-            sep="\n")
+            end="\n" * 2)
         #2: If non-standardized shapefile respects naming convention and is empty.
         elif (
             shp in ok_nstand_shp
@@ -272,8 +265,7 @@ def shp_info_non_standardized(zip_dir: str, mun_code: int) -> None:
         ) is True:
             print(
             f"Warning: {shp} is included, but empty.",
-            spaces,
-            sep="\n")
+            end="\n" * 2)
         #3: If non-standardized shapefile is included (is not empty), but does not respect naming convention.
         elif (
             shp not in ok_nstand_shp
@@ -284,8 +276,7 @@ def shp_info_non_standardized(zip_dir: str, mun_code: int) -> None:
             ) is False:
             print(
             f"Warning: {shp} is included, but does not respect naming convention.",
-            spaces,
-            sep="\n")
+            end="\n" * 2)
         #4: If non-standardized shapefile is included, does not respect naming convention and is empty.
         elif (
             shp not in ok_nstand_shp
@@ -296,8 +287,7 @@ def shp_info_non_standardized(zip_dir: str, mun_code: int) -> None:
             ) is True:
             print(
             f"Warning: {shp} does not respect naming convention and is empty.",
-            spaces,
-            sep="\n")
+            end="\n" * 2)
         else:
             pass
 
@@ -340,7 +330,6 @@ def shp_within_mun(
         Number of geometries that are not within ReseneUzemi_p.
     """
     # Checking process announcement title.
-    spaces = " " * 150
     # List for geometry rows.
     geom_out = []
     try:
@@ -376,6 +365,7 @@ def shp_within_mun(
             if len(geom_out) == 0:
                 print(
                     f"Ok: All geometries are within ReseneUzemi_p.",
+                    end="\n" * 2
                 )
             # If there are some geometries outside, do:
             elif len(geom_out) > 0 and export is True:
@@ -397,21 +387,21 @@ def shp_within_mun(
                 print(
                     f"Error: There are geometries outside ReseneUzemi_p ({len(geom_out)}).",
                     f"       - These parts were saved as {shp.lower()}_outside.shp.",
-                    sep="\n",
+                    end="\n" * 2
                 )
             # If export = False, print number of features outside only.
             else:
                 print(
-                    f"Error: There are geometries outside ReseneUzemi_p ({len(geom_out)}).",
-                    sep="\n"
+                    f"Error: There are geometries outside ReseneUzemi_p ({len(geom_out)}).", 
+                    end="\n" * 2
                 )
         else:
-            print("Error: Checking features within ReseneUzemi_p cannot be run due to invalid geometries.")
+            print("Error: Checking features within ReseneUzemi_p cannot be run due to invalid geometries.",
+                  end="\n" * 2)
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
 
-    print(spaces)
     return len(geom_out) 
 
 
@@ -444,7 +434,6 @@ def covered_mun_both(
     int
         Number of geometries that do not cover ReseneUzemi_p.
     """
-    spaces = " " * 150
     try:
         errors = 0
         if (
@@ -483,6 +472,7 @@ def covered_mun_both(
             if diff is None:
                 print(
                     f"Ok: All geometries from PlochyRZV_p and KoridoryP_p cover ReseneUzemi_p.",
+                    end="\n" * 2
                 )
             # If there are some differences and export = True, export them
             # as shapefile and print statements about differences.
@@ -497,7 +487,7 @@ def covered_mun_both(
                     f"Error: ReseneUzemi_p is not fully covered by geometries from PlochyRZV_p and KoridoryP_p.",
                     f"       - Number of features not covering ReseneUzemi_p: {len(exploded.geometry)}.",
                     f"       - These part were saved as not_cover_reseneuzemi_p.shp",
-                    sep="\n",
+                    end="\n" * 2,
                 )
                 errors += 1
             # If export = False, print info about differences only.
@@ -505,17 +495,17 @@ def covered_mun_both(
                 print(
                     f"Error: ReseneUzemi_p is not fully covered by geometries from PlochyRZV_p and KoridoryP_p.",
                     f"       - Number of features not covering ReseneUzemi_p: {len(exploded.geometry)}.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
                 errors += 1
         else:
-            print("Error: Checking covering ReseneUzemi_p by PlochyRZV_p and KoridoryP_p cannot be run due to invalid geometries.")
+            print("Error: Checking covering ReseneUzemi_p by PlochyRZV_p and KoridoryP_p cannot be run due to invalid geometries.",
+                  end="\n" * 2)
             errors += 1
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
 
-    print(spaces)
     return errors 
 
 
@@ -547,7 +537,6 @@ def covered_mun_przv(
     int
         Number of geometries that do not cover ReseneUzemi_p.
     """
-    spaces = " " * 150
     try:
         errors = 0
         if (
@@ -582,7 +571,7 @@ def covered_mun_przv(
                 print(
                     "Warning: Covering ReseneUzemi_p was checked with PlochyRZV_p layer only, because KoridoryP_p layer is missing.",
                     "Ok: All geometries in PlochyRZV_p cover ReseneUzemi_p.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
             # If there are some differences and export = True, export them
             # as shapefile and print statements about differences.
@@ -599,7 +588,7 @@ def covered_mun_przv(
                     "Error: ReseneUzemi_p is not fully covered by geometries from PlochyRZV_p.",
                     f"       - Number of features not covering ReseneUzemi_p: {len(exploded.geometry)}.",
                     "       - These parts were saved as 'not_cover_reseneuzemi_p.shp'",
-                    sep="\n",
+                    end="\n" * 2,
                 )
             # If export = false, print info about differences only.
             else:
@@ -607,18 +596,18 @@ def covered_mun_przv(
                     "Warning: Covering ReseneUzemi_p was checked with PlochyRZV_p layer only, because KoridoryP_p layer is missing.",
                     "Error: ReseneUzemi_p is not fully covered by geoemtries from PlochyRZV_p.",
                     f"      - Number of features not covering ReseneUzemi_p: {len(exploded.geometry)}.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
                 errors += 1
         else:
-            print("Error: Checking covering ReseneUzemi_p by PlochyRZV_p cannot be run due to invalid geometries.")
+            print("Error: Checking covering ReseneUzemi_p by PlochyRZV_p cannot be run due to invalid geometries.",
+                  end="\n" * 2)
             errors += 1
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
 
-    print(spaces)
     return errors 
 
 
@@ -653,7 +642,6 @@ def check_gaps(
         Number of gaps within certain shapefile.
     """
 
-    spaces = " " * 150
     # Errors variable is defined, because I can get None type and I do not
     # run len() function on None type.
     errors = 0
@@ -674,7 +662,9 @@ def check_gaps(
             interior = dissolved.geometry.interiors.tolist()[0]
             # Print statement for shapefiles without inner rings.
             if interior is None or len(interior) == 0:
-                print(f"Ok: There are no gaps.")
+                print(f"Ok: There are no gaps.",
+                      end="\n" * 2
+                      )
             # If there are some inner rings, exported them as shapefile and print
             # number of inner rings and where these inner rings are stored.
             elif len(interior) > 0 and export is True:
@@ -690,22 +680,23 @@ def check_gaps(
                 print(
                     f"Error: There are gaps ({len(interior)}).",
                     f"       - Gaps were saved as {shp.lower()}_gaps.shp.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
             # If export_gaps = False, print only number of inner rings.
             else:
                 errors += 1
                 print(
                     f"Error: There are gaps ({len(interior)}).",
+                    end="\n" * 2
                 )
         else:
-            print("Error: Checking gaps cannot be run due to invalid geometries.")
+            print("Error: Checking gaps cannot be run due to invalid geometries.",
+                  end="\n" * 2)
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
 
-    print(spaces)
     return errors
 
 
@@ -739,7 +730,6 @@ def check_gaps_covered(
          If numbers are greater than zero, there are gaps (error)
          or KoridoryP_p shapefile is missing.
     """
-    spaces = " " * 150
     try:
         errors = 0
         warns = 0
@@ -783,7 +773,7 @@ def check_gaps_covered(
                 if interior is None or len(interior) == 0:
                     print(
                         "OK: There is no gaps between PlochyRZV_p and KoridoryP_p.",
-                        sep="\n",
+                        end="\n" * 2,
                     )
                 # If there are some inner rings, exported them as shapefile and print
                 # number of inner rings and where these inner rings are stored.
@@ -799,13 +789,14 @@ def check_gaps_covered(
                     print(
                         f"Error: There are gaps between PlochyRZV_p and KoridoryP_p {len(interior)}.",
                         f"       - Gaps were exported as plochy_rzv_kordiory_p_gaps.shp.",
-                        sep="\n",
+                        end="\n" * 2,
                     )
                     errors += 1
                 # If export = False, print number of inner rings only.
                 else:
                     print(
                         f"Error: There are gaps between PlochyRZV_p and Koridory_p {len(interior)}.",
+                        end="\n" * 2
                     )
             # If there is only PlochyRZV_p.
             elif (
@@ -817,7 +808,7 @@ def check_gaps_covered(
                     "Warning: Gaps between PlochyRZV_p and KoridoryP_p cannot be check due to:",
                     "       - KoridoryP_p is missing.",
                     "       - Gaps in PlochyRZV_p has been already checked within other step.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
                 warns += 1
 
@@ -831,7 +822,7 @@ def check_gaps_covered(
                     "Warning: Gaps between PlochyRZV_p and KoridoryP_p cannot be check due to:",
                     "       - KoridoryP_p is empty.",
                     "       - Gaps in PlochyRZV_p has been already checked within other step.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
                 warns += 1
 
@@ -841,19 +832,21 @@ def check_gaps_covered(
                 )
                 # If KoridoryP_p is misssing.
                 if "PlochyRZV_p" not in zip_contents:
-                    print("       - PlochyRZV_p is missing.")
+                    print("       - PlochyRZV_p is missing.",
+                          end="\n" * 2)
                 # If KoridoryP_p is empty.
                 elif gpd.read_file(plochy_rzv_path).empty is True:
-                    print("       - PlochyRZV_p is empty.")
+                    print("       - PlochyRZV_p is empty.",
+                          end="\n" * 2)
                 errors += 1
         else:
-            print("Error: Gaps between PlochyRZV_p and KoridoryP_p cannot be run due to invalid geometries.")
+            print("Error: Gaps between PlochyRZV_p and KoridoryP_p cannot be run due to invalid geometries.",
+                  end="\n" * 2)
             errors += 1
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
-    print(spaces)
     return errors, warns
 
 
@@ -893,7 +886,6 @@ def check_overlaps(
         Number of overlaping geometries within certain shapefile.
     """
     try:
-        spaces = " " * 150
         intersected = []
         if validity_shp_zip(zip_dir, mun_code, shp) == 0:
             shp_gdf = gpd.read_file(
@@ -926,7 +918,8 @@ def check_overlaps(
             polyg_only = [x for x in geom_exploded if x.geom_type == "Polygon"]
             # If there are no overlaps (polygon parts), print statement.
             if len(polyg_only) == 0:
-                print("Ok: There are no overlaps.")
+                print("Ok: There are no overlaps.",
+                      end="\n" * 2)
             # If there are overlaps (polygon parts), export them and
             # print their number and where were these geometries stored.
             elif len(polyg_only) > 0 and export is True:
@@ -939,21 +932,22 @@ def check_overlaps(
                 print(
                     f"Error: There are overlaps ({len(polyg_only)}).",
                     f"       - Overlaps were saved as {shp.lower()}_overlaps.shp.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
             # If export_overlaps = export number of oerlaps only.
             else:
                 print(
                     f"Error: There are overlaps ({len(polyg_only)}).",
+                    end="\n" * 2,
                 )
         else:
-            print("Error: Checking overlaps cannot be run due to invalid geometries.")
+            print("Error: Checking overlaps cannot be run due to invalid geometries.",
+                  end="\n" * 2)
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
 
-    print(spaces)
     return len(intersected)
 
 
@@ -989,7 +983,6 @@ def overlaps_covered_mun(
          or KoridoryP_p shapefile is missing.
     """
     try:
-        spaces = " " * 150
         errors = 0
         warns = 0
         if (
@@ -1036,6 +1029,7 @@ def overlaps_covered_mun(
                 if len(polyg_only) == 0:
                     print(
                         "Ok: There are no overlaps between PlochyRZV_p and KoridoryP_p.",
+                        end="\n" * 2
                     )
                 # If there are some intersections and export_inter = True, export them
                 # as shapefile and print statements about intersections.
@@ -1048,14 +1042,14 @@ def overlaps_covered_mun(
                     print(
                         f"Error: There are overlaps between PlochyRZV_p and KoridoryP_p ({len(exploded.geometry)}).",
                         f"      - Overlaps were saved as plochy_rzv_koridory_p_overlaps.shp.",
-                        sep="\n",
+                        end="\n" * 2,
                     )
                     errors += 1
                 # If export_inter = False, print statement about differences.
                 else:
                     print(
                         f"Error: There are overlaps between PlochyRZV_p and KoridoryP_p ({len(exploded.geometry)}).",
-                        sep="\n"
+                        end="\n" * 2
                     )
                     errors += 1
             # If non-empty PlochyRZV_p is included and KoridoryP_p is missing.
@@ -1068,7 +1062,7 @@ def overlaps_covered_mun(
                     "Warning: Gaps between PlochyRZV_p and KoridoryP_p were not checked due to:",
                     "         - KoridoryP_p is missing.",
                     "         - Overlaps in PlochyRZV_p has been already checked within other step.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
                 warns += 1
             # If non-empty PlochyRZV_p is included and KoridoryP_p is empty.
@@ -1081,7 +1075,7 @@ def overlaps_covered_mun(
                     "Warning: Gaps between PlochyRZV_p and KoridoryP_p were not checked due to:",
                     "         - KoridoryP_p is empty.",
                     "         - Overlaps in PlochyRZV_p has been already checked within other step.",
-                    sep="\n",
+                    end="\n" * 2,
                 )
                 warns += 1
             else:
@@ -1090,19 +1084,21 @@ def overlaps_covered_mun(
                 )
                 # If PlochyRZV_p is missing.
                 if f"DUP_{mun_code}/Data/PlochyRZV_p.shp" not in zip_contents:
-                    print("       - PlochyRZV_p is missing.")
+                    print("       - PlochyRZV_p is missing.",
+                          end="\n" * 2)
                 # If PlochyRZV_p is empty.
                 elif gpd.read_file(plochy_rzv_path).empty is True:
-                    print("       - PlochyRZV_p is empty.")
+                    print("       - PlochyRZV_p is empty.",
+                          end="\n" * 2)
                 errors += 1
         else:
-            print("Error: Overlaps between KoridoryP_p and KoridoryP_p cannot be run due to invalid geometries.")
+            print("Error: Overlaps between KoridoryP_p and KoridoryP_p cannot be run due to invalid geometries.",
+                  end="\n" * 2)
             errors += 1
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
-    print(spaces)
     return errors, warns
 
 
@@ -1144,7 +1140,6 @@ def vu_within_uses(
         Integer that indicates if there are some errors (0 -> no
         errors, 1 -> errors occurr). 
     """
-    spaces = " " * 150
     errors = 0
     try:
         shps_from_zip = shps_in_zip(zip_dir, mun_code)
@@ -1196,7 +1191,8 @@ def vu_within_uses(
                 # If all Vu features are within USES_p.
                 if len(geom_out) == 0:
                     print(
-                        "Ok: There are no VU geometries outside USES_p.", spaces, sep="\n"
+                        "Ok: There are no VU geometries outside USES_p.",
+                        end="\n" * 2
                     )
                 # If there are some geometries outside, do:
                 elif len(geom_out) > 0 and export is True:
@@ -1215,21 +1211,18 @@ def vu_within_uses(
                     print(
                         f"Error: There are VU geometries outside USES_p ({len(geom_out)}).",
                         "       - These parts were saved as vpsvpoas_p_vu_outside.shp.",
-                        spaces,
-                        sep="\n",
+                        end="\n" * 2
                     )
                 # If export_outside = False, print number of features outside only.
                 else:
                     errors += 0
                     print(
                         f"Error: There are VU geometries outside USES_p ({len(geom_out)}).",
-                        spaces,
-                        sep="\n",
+                        end="\n" * 2
                     )
             else:
                 print("Error: Checking VU features within USES_p cannot be run due to invalid geometries.",
-                      spaces,
-                      sep="\n"
+                      sep="\n" * 2
                       )
         else:
             pass
@@ -1279,7 +1272,6 @@ def p_within_zu(
         Integer that indicates if there are some errors (0 -> no
         errors, 1 -> errors occurr).
     """
-    spaces = " " * 150
     errors = 0
     try:
         shps_from_zip = shps_in_zip(zip_dir, mun_code)
@@ -1330,8 +1322,7 @@ def p_within_zu(
                 if len(geom_out) == 0:
                     print(
                         "Ok: There are no P geometries outside ZastaveneUzemi_p.",
-                        spaces,
-                        sep="\n",
+                        end="\n" * 2
                     )
                 # If there are some geometries outside, do:
                 elif len(geom_out) > 0 and export_outside is True:
@@ -1350,16 +1341,14 @@ def p_within_zu(
                     print(
                         f"Error: There are P geometries outside ZastaveneUzemi_p ({len(geom_out)}).",
                         "       - These parts were saved as plochyzmen_p_p_outside.shp.",
-                        spaces,
-                        sep="\n",
+                        end="\n" * 2,
                     )
                 # If export_outside = False, print number of features outside only.
                 else:
                     errors += 1
                     print(
                         f"Error: There are P geometries outside ZastaveneUzemi_p ({len(geom_out)}).",
-                        spaces,
-                        sep="\n",
+                        sep="\n" * 2,
                     )
             else:
                 print("Error: Checking Z features within ZastaveneUzemi_p cannot be run due to invalid geometries.")
@@ -1410,7 +1399,6 @@ def k_outside_zu(
         Integer that indicates if there are some errors (0 -> no
         errors, 1 -> errors occurr).
     """
-    spaces = " " * 150
     errors = 0
     try:
         shps_from_zip = shps_in_zip(zip_dir, mun_code)
@@ -1457,8 +1445,7 @@ def k_outside_zu(
                 if len(geom_in) == 0:
                     print(
                         "Ok: There are no K geometries outside ZastaveneUzemi_p.",
-                        spaces,
-                        sep="\n",
+                        end="\n" * 2,
                     )
                 # If there are some geometries inside, do:
                 elif len(geom_in) > 0 and export_inside is True:
@@ -1477,16 +1464,14 @@ def k_outside_zu(
                     print(
                         f"Error: There are K geometries inside ZastaveneUzemi_p ({len(geom_in)}).",
                         "       - These parts were saved as plochyzmen_k_p_inside.shp.",
-                        spaces,
-                        sep="\n",
+                        end="\n" * 2,
                     )
                 # If export_inside = False, print number of features inside only.
                 else:
                     errors += 1
                     print(
                         f"Error: There are {len(geom_in)} 'K' feature(s) inside ZastaveneUzemi_p ({len(geom_in)}).",
-                        spaces,
-                        sep="\n",
+                        end="\n" * 2,
                     )
             else:
                 print("Error: Checking K features outside of ZastaveneUzemi_p cannot be run due to invalid geometries.")

@@ -1,18 +1,8 @@
 import functools
 from time import time
-from types import FunctionType
 
 
-def timer(func: FunctionType):
-    """
-    Timer decorator for capturing process time.
-
-    Parameters
-    ----------
-    func : FunctionType
-        A function on which will be this decorator
-        applied.
-    """
+def timer(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time()

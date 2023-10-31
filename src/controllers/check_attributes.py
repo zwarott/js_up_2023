@@ -25,7 +25,6 @@ def mandatory_attrs_exist(zip_dir: str, mun_code: int, shp: str) -> int:
     int
         A number of missing mandatory attributes.
     """
-    spaces = " " * 150
     try:
         # Geodataframe from input shapefile.
         shp_gdf = gpd.read_file(
@@ -45,16 +44,17 @@ def mandatory_attrs_exist(zip_dir: str, mun_code: int, shp: str) -> int:
         missing = set(attributes[shp.lower()]).difference(set(included))
         # If all mandatory attributes are include.
         if len(missing) == 0:
-            print(f"OK: All mandatory attributes are included.")
+            print(f"OK: All mandatory attributes are included.",
+                  end="\n" * 2)
         # If any mandatory attribute is missing.
         elif len(missing) > 0:
             for attr in missing:
-                print(f"Error: {attr} attribute in is missing.")
+                print(f"Error: {attr} attribute in is missing.",
+                      end="\n" * 2)
     # If any error occurs, print info about it.
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
-    print(spaces)
     
     # Return number of missing attributes.
     return len(missing)
@@ -83,7 +83,6 @@ def mandatory_attrs_type(zip_dir: str, mun_code: int, shp: str) -> int:
     int
         Number of mandatory attributes with wrong types.
     """
-    spaces = " " * 150
     # Geodataframe from input shapefile.
     try:
         shp_gdf = gpd.read_file(
@@ -110,15 +109,16 @@ def mandatory_attrs_type(zip_dir: str, mun_code: int, shp: str) -> int:
                 wrong_attr.append(shp_gdf[attr].name)
                 wrong_types.append(shp_gdf[attr].dtype)
         if len(wrong_types) == 0:
-            print("Ok: All attributes have correct type.")
+            print("Ok: All attributes have correct type.",
+                  end="\n" * 2)
         else:
             for attr in wrong_attr:
-                print(f"Error: {attr} attribute has not correct type.")
+                print(f"Error: {attr} attribute has not correct type.",
+                      end="\n" * 2)
 
     # If any error occurs, print info about it.
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
-    print(spaces)
 
     return len(wrong_types)

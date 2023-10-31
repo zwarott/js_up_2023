@@ -371,8 +371,6 @@ def check_validity_shp_zip(
 
     """
     try:
-        spaces = "   "
-        print(spaces)
         # GeoSeries from shp.
         gdf_from_shp = gpd.read_file(
             f"zip://{zip_dir}/DUP_{mun_code}.zip!DUP_{mun_code}/Data/{shp}.shp"
@@ -401,6 +399,7 @@ def check_validity_shp_zip(
         if len(invalid_geom) == 0:
             print(
                 f"OK: All geometries are valid.",
+                end="\n" * 2
             )
         # If there are some invalid geometries and these geometries need to be
         # exported, they will be saved as shapefiles. Also print number ot them
@@ -446,18 +445,18 @@ def check_validity_shp_zip(
                 f"Error: There are invalid geometries ({len(invalid_geom)}).",
                 f"       - Invalid geometries were saved as {shp.lower()}_invalid.shp",
                 f"       - Invalid geometry locations (points) were saved as {shp.lower()}_invalid_location.shp.",
-                sep="\n",
+                end="\n" * 2,
             )
         # If I do not need export invalied geometries, only print their number.
         elif len(invalid_geom) > 0:
             print(
-                f"Error: There are invalid geometries ({len(invalid_geom)})."
+                f"Error: There are invalid geometries ({len(invalid_geom)}).",
+                end="\n" * 2
             )
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
 
-    print(spaces)
     return len(invalid_geom) 
 
 

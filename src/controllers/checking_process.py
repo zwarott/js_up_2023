@@ -22,13 +22,10 @@ from src.controllers.check_relationships import (
 from src.controllers.check_attributes import mandatory_attrs_exist, mandatory_attrs_type
 from src.controllers.check_records import allowed_values
 from src.controllers.check_geometry import check_validity_shp_zip
-from src.controllers.decorators import timer
 
 
-# Implement timer decorator for checking duration of this checking process.
-@timer
 def check_layers(
-    zip_dir: str, dest_dir_path: str, mun_code: int, export: bool = False
+    zip_dir: str, dest_dir_path: str, mun_code: int, export: bool = False,
 ):
     """Run checking process including several subprocesses.
 
@@ -52,13 +49,8 @@ def check_layers(
     """
     # Print info about standardized layers.
     shp_info_standardized(zip_dir, mun_code)
-    indent_30 = "-" * 30
-    indent_20 = "-" * 20
-    spaces = " "
-    print(spaces)
     # Start checking proess.
-    print(indent_30, " CHECKING PROCESS ", indent_30)
-    print(spaces, spaces, sep="\n")
+    print("\n", " CHECKING PROCESS ".center(60, "-"), sep="\n", end="\n" * 3)
     #Create list of all shapefiles included in zipped file.
     shps_from_zip = shps_in_zip(zip_dir, mun_code)
     # Create list of standardized shapefiles that are not empty.
@@ -83,7 +75,7 @@ def check_layers(
     # If any error occurs int will be appended to errors variable.
     for shp in shps_to_check:
         errors = 0
-        print(indent_20, f" CHECKING – {shp} layer", indent_20)
+        print(f" CHECKING – {shp} layer ".center(60, "-"), end="\n" * 2)
         e = check_validity_shp_zip(zip_dir, dest_dir_path, mun_code, shp, exp)
         errors += e
         e = shp_within_mun(zip_dir, dest_dir_path, mun_code, shp, exp)
@@ -106,16 +98,14 @@ def check_layers(
         errors += e
 
         if errors == 0: 
-            print("Status: Ok")
+            print("Status: Ok", end="\n" * 3)
         else:
             status += 1
-            print("Status: Error")
-        print(spaces)
+            print("Status: Error", end="\n" * 3)
     
     # Check relationships between layers such as ReseneUzemi_p, PlochyRZV_p
     # and KoridoryP_p.
-    print(indent_20, "CHECKING RELATIONSHIPS BETWEEN LAYERS", indent_20)
-    print(spaces)
+    print(" CHECKING RELATIONSHIPS BETWEEN LAYERS ".center(60, "-"), end="\n" * 2)
     # Check if any errors and warnings occurr.
     errors = 0
     warnings = 0
@@ -132,20 +122,18 @@ def check_layers(
         e = covered_mun_przv(zip_dir, dest_dir_path, mun_code, exp)
         errors += e
         print(
-            "Warning: KoridoryP_p layer is missing, gaps in PlochyRZV_p were already checked."
+            "Warning: KoridoryP_p layer is missing, gaps in PlochyRZV_p were already checked.",
+            "Warning: KoridoryP_p layer is missing, overlaps in PlochyRZV_p were already checked.",
+            sep="\n" * 2, 
+            end="\n" * 2
         )
-        print(spaces)
-        print(
-            "Warning: KoridoryP_p layer is missing, overlaps in PlochyRZV_p were already checked."
-        )
-    print(spaces)
     if errors == 0 and warnings == 0:
-        print("Status: Ok")
+        print("Status: Ok", end="\n" * 2)
     elif errors == 0 and warnings > 0:
-        print("Status: Warning")
+        print("Status: Warning", end="\n" * 2)
     else:
         status += 1
-        print("Status: Error")
+        print("Status: Error", end="\n" * 2)
     
     # Print info about non-standardized layers.
     shp_info_non_standardized(zip_dir, mun_code)
@@ -168,27 +156,22 @@ def check_layers(
             errors += e
 
             if errors == 0: 
-                print("Status: Ok")
+                print("Status: Ok", end="\n" * 3)
             else:
                 status += 1
-                print("Status: Error")
-            print(spaces)
+                print("Status: Error", end="\n" * 3)
     else:
-        print("There are not any non-standardized layers.")
+        print("There are not any non-standardized layers.", end="\n" * 3)
 
-    print(spaces)
-    print(indent_30, " CHECKING WAS FINISHED ", indent_30)
-    print(spaces)
+    print(" CHECKING WAS FINISHED ".center(60, "-"), end="\n" * 2)
 
     # Print info about checking status -> if input data are ok or some errors occurr.
     if status == 0:
-        print("Status: Ok")
+        print("Status: Ok", end="\n" * 2)
     else:
-        print("Status: Error")
+        print("Status: Error", end="\n" * 2)
     time_info = datetime.today().isoformat(sep=" ", timespec="seconds")
     print(
-        spaces,
         f"Importing spatial plan of municipality with code {mun_code} was finished at {time_info}.",
-        spaces,
-        sep="\n",
+        end="\n" * 2,
     )

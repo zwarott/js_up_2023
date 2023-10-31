@@ -35,7 +35,6 @@ def allowed_values(
         Default value is set up as False (for not exporting these
         wrong values). For exporting these values, put True.
     """
-    spaces = " " * 150
     try:
         # Create GeoDataFrame.
         shp_gdf = gpd.read_file(
@@ -299,7 +298,8 @@ def allowed_values(
             print(
                 "Error: There are features that do not respect convention.",
                 f"      - Number of features not respecting convention: {len(wrong_values_geom)}.",
-                sep="\n"
+                sep="\n",
+                end="\n" * 2
             )
         elif len(wrong_values_geom) > 0 and export_values is True:
             wrong_values_geom_col = gpd.GeoSeries(
@@ -321,13 +321,14 @@ def allowed_values(
                 f"      - Number of features not respecting convention: {len(wrong_values_geom)}.",
                 f"      - These parts were saved as '{shp.lower()}_wrong_values.shp'.",
                 sep="\n",
+                end="\n" * 2,
             )
         else:
-            print(f"Ok: All features respect convention.")
+            print(f"Ok: All features respect convention.",
+                  end="\n" * 2)
 
     except Exception as err:
         print(f"Unexpected {err=}, {type(err)=}")
         raise
-    print(spaces)
 
     return len(wrong_values_geom)
