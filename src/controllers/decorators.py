@@ -3,6 +3,7 @@ from time import time
 
 
 def timer(func):
+    "Decorator for recording the duration of function process."
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time()
